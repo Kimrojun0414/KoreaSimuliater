@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>대한민국 진급·승진 시뮬레이터 | K-PROMOTION 3D</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #070b14;
+      --panel-bg: rgba(12, 18, 32, 0.88);
+      --kr-blue: #0047a0;
+      --kr-red: #cd2e3a;
+      --gold: #f5b942;
+    }
+    * { box-sizing: border-box; user-select: none; }
+    body {
+      margin: 0;
+      background-color: var(--bg-dark);
+      color: #f8fafc;
+      font-family: 'Noto Sans KR', sans-serif;
+      overflow-x: hidden;
+    }
+    .font-mono-num { font-family: 'JetBrains Mono', monospace; }
+    .glass-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .taegeuk-gradient {
+      background: linear-gradient(135deg, rgba(205, 46, 58, 0.18) 0%, rgba(15, 23, 42, 0.92) 50%, rgba(0, 71, 160, 0.22) 100%);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #0047a0 0%, #1d4ed8 100%);
+      transition: all 0.18s ease;
+    }
+    .btn-primary:hover:not(:disabled) { filter: brightness(1.15); transform: translateY(-1px); }
+    .btn-gold {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #09090b;
+      font-weight: 900;
+      transition: all 0.18s ease;
+    }
+    .btn-gold:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-primary:disabled, .btn-gold:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* 조준점 */
+    #crosshair {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 14px;
+      height: 14px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 25;
+    }
+    #crosshair::before, #crosshair::after {
+      content: '';
+      position: absolute;
+      background: rgba(255, 255, 255, 0.8);
+    }
+    #crosshair::before { top: 6px; left: 0; width: 14px; height: 2px; }
+    #crosshair::after { left: 6px; top: 0; width: 2px; height: 14px; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.35); border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ===================================================================== -->
+  <!-- 1. 처음 화면 (대한민국 메인 로비)                                      -->
+  <!-- ===================================================================== -->
+  <div id="screen-lobby" class="min-h-screen taegeuk-gradient flex flex-col justify-between">
+    <!-- 상단 바 -->
+    <header class="border-b border-white/10 bg-slate-950/70 backdrop-blur-md px-4 py-3">
+      <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <!-- 태극 심볼 SVG -->
+          <svg width="36" height="36" viewBox="0 0 100 100" class="rounded-full shadow-lg bg-white p-0.5">
+            <circle cx="50" cy="50" r="48" fill="#ffffff"/>
+            <path d="M50,2 A48,48 0 0,1 50,98 A24,24 0 0,1 50,50 A24,24 0 0,0 50,2 Z" fill="#cd2e3a"/>
+            <path d="M50,98 A48,48 0 0,1 50,2 A24,24 0 0,1 50,50 A24,24 0 0,0 50,98 Z" fill="#0047a0"/>
+          </svg>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-lg font-black tracking-tight text-white">대한민국 진급·승진 시뮬레이터</span>
+              <span class="text-[11px] px-2 py-0.5 rounded bg-blue-500/20 border border-blue-400/40 text-blue-300 font-bold">3D FPS</span>
+            </div>
+            <p class="text-[11px] text-slate-400">REPUBLIC OF KOREA · HIERARCHY &amp; TYCOON SIMULATOR</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- 웅장한 BGM 컨트롤 -->
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-amber-400/35 text-xs">
+            <button id="btn-bgm-toggle" onclick="toggleBgmMute()" class="font-bold text-amber-300 hover:text-amber-200 flex items-center gap-1">
+              <span id="bgm-icon">🔊</span>
+              <span id="bgm-label">웅장 BGM ON</span>
+            </button>
+            <input id="bgm-volume" type="range" min="0" max="100" value="45" oninput="setBgmVolume(this.value)"
+              class="w-16 accent-amber-400 cursor-pointer" title="BGM 볼륨" />
+          </div>
+
+          <span id="sync-badge" class="text-[11px] px-2.5 py-1 rounded-full bg-slate-900 border border-emerald-500/40 text-emerald-400 font-bold">
+            ● 로컬 실시간 동기화
+          </span>
+          <button onclick="openFirebaseModal()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-white/15 text-slate-200 font-bold transition">
+            ⚙ Firebase 설정
+          </button>
+          <div id="lobby-user-badge" class="text-xs px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-400/40 text-amber-300 font-bold">
+            시민_001
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- 중앙 메인 콘텐츠 -->
+    <main class="max-w-7xl w-full mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      <!-- 왼쪽 7컬럼: 대한민국 비주얼 & 시작 설정 -->
+      <div class="lg:col-span-7 glass-panel rounded-3xl p-6 sm:p-8 flex flex-col justify-between space-y-6 relative overflow-hidden">
+        <!-- 배경 한반도 실루엣 데코 -->
+        <svg viewBox="0 0 220 320" class="absolute right-4 bottom-4 w-56 h-72 opacity-15 pointer-events-none text-blue-300" fill="currentColor">
+          <path d="M125,18 L148,26 L165,45 L154,72 L138,92 L144,122 L158,155 L162,195 L150,235 L132,262 L105,274 L84,264 L78,236 L88,205 L82,175 L64,152 L55,126 L72,102 L68,78 L88,56 L104,32 Z M72,292 Q86,287 98,294 Q85,303 72,292 Z"/>
+        </svg>
+
+        <div class="space-y-3 relative z-10">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs font-bold text-amber-300">
+            <span>🇰🇷 대한민국 계급 사회 · 1인칭 3D 오픈 필드</span>
+          </div>
+          <h1 class="text-3xl sm:text-4xl font-black text-white leading-tight">
+            이병·사원에서 시작해<br/>
+            <span class="text-amber-400">대한민국 대통령</span>으로 도약하라
+          </h1>
+          <p class="text-sm text-slate-300 leading-relaxed max-w-2xl">
+            실제 복무·근무 시간과 상급자(AI 시민 40명 + 접속 친구)의 T/O(정원) 경쟁을 뚫고 진급하세요.
+            최고 지위에 오르면 직접 대한민국의 시설을 건설하고 세율·국방·복지를 조율하는 <strong>대통령 국정 타이쿤</strong>이 열립니다.
+          </p>
+        </div>
+
+        <!-- 로그인 & 닉네임 영역 -->
+        <div class="rounded-2xl bg-slate-950/80 border border-white/10 p-4 space-y-3 relative z-10">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-300">시민 등록 및 계정 로그인</span>
+            <span id="auth-status-text" class="text-[11px] text-slate-400">닉네임 또는 Google 계정 연동</span>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input id="nickname-input" type="text" maxlength="12" placeholder="이름 / 닉네임 입력"
+              class="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/15 text-sm text-white focus:outline-none focus:border-amber-400" />
+            <button onclick="saveNickname()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white transition">
+              이름 확정
+            </button>
+            <button onclick="loginWithGoogle()" class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-200 text-slate-950 text-xs font-black transition flex items-center justify-center gap-1.5">
+              <span>G</span> Google 로그인
+            </button>
+          </div>
+        </div>
+
+        <!-- 혼자하기 / 함께하기 버튼 -->
+        <div class="space-y-3 relative z-10">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button onclick="openTrackModal('solo')" class="btn-gold py-4 px-5 rounded-2xl text-sm shadow-xl flex items-center justify-center gap-2">
+              <span>🎮 혼자하기 (AI 40명 세계)</span>
+            </button>
+            <button onclick="createTogetherRoom()" class="btn-primary py-4 px-5 rounded-2xl text-sm font-black text-white shadow-xl flex items-center justify-center gap-2">
+              <span>🤝 함께하기 (방 코드 생성)</span>
+            </button>
+          </div>
+
+          <div class="flex gap-2">
+            <input id="room-code-input" type="text" maxlength="6" placeholder="친구 방 코드 6자리 입력"
+              class="flex-1 px-4 py-2.5 rounded-xl bg-slate-950/90 border border-white/15 text-sm font-mono-num uppercase text-amber-300 focus:outline-none focus:border-amber-400" />
+            <button onclick="joinTogetherRoom()" class="px-5 py-2.5 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/40 text-blue-200 text-xs font-black transition">
+              코드로 합류
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 오른쪽 5컬럼: 두 진로 비교 & 명예의 전당 -->
+      <div class="lg:col-span-5 flex flex-col gap-5">
+        <!-- 진로 구조 안내 카드 -->
+        <div class="glass-panel rounded-3xl p-6 space-y-4">
+          <h2 class="text-base font-black text-white">진급 · 승진 커리어 트랙 비교</h2>
+
+          <div class="rounded-2xl bg-emerald-950/40 border border-emerald-500/30 p-4 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-black text-emerald-300">🪖 대한민국 육군 (정통 군·행정 트랙)</span>
+              <span class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-200 font-bold">장기 · 묵직한 진급</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              <strong>이병 → 일병 → 상병 → 병장 → 하사~원사 → 소위~대령 → 준장~대장 → 국무총리 → 대통령</strong><br/>
+              총 20단계 계급. 상급자 정원(T/O)과 근무 시간이 누적되어야 진급하며, 최고 지휘관을 거쳐 국무총리·대통령에 오릅니다.
+            </p>
+          </div>
+
+          <div class="rounded-2xl bg-blue-950/40 border border-blue-500/30 p-4 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-black text-blue-300">🏢 대한민국 기업 &amp; 선거 정계 트랙</span>
+              <span class="text-[11px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-200 font-bold">쾌속 승진 + 선거전</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              <strong>사원 → 대리 → 과장 → 차장 → 부장 → 상무·전무·부사장 → 사장 → 회장</strong> 달성 후,<br/>
+              <strong>국회의원 → 국회의장 → 서울시장 → 국무총리 → 대통령</strong>까지 <strong>실시간 선거 투표(AI 유권자+친구)</strong>로 돌파합니다!
+            </p>
+          </div>
+
+          <div class="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-400/25 rounded-xl px-3.5 py-2.5">
+            ⏱ 두 진로 모두 대통령 취임까지 <strong>최소 1시간 이상의 누적 플레이(실제 경과 시간 반영)</strong>가 필요하며, 브라우저를 닫았다가 다시 접속해도 진행도와 근무 시간이 이어집니다.
+          </div>
+        </div>
+
+        <!-- 대통령 취임 명예의 전당 -->
+        <div class="glass-panel rounded-3xl p-6 flex-1 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-black text-white">🏛 역대 대통령 및 최고 직위 랭킹</h3>
+              <button onclick="renderHallOfFame()" class="text-[11px] text-slate-400 hover:text-white">새로고침</button>
+            </div>
+            <div class="rounded-xl border border-white/10 overflow-hidden bg-slate-950/70">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-900/90 text-slate-400 text-[11px]">
+                  <tr>
+                    <th class="py-2 px-3">순위</th>
+                    <th class="py-2 px-3">이름</th>
+                    <th class="py-2 px-3">직위</th>
+                    <th class="py-2 px-3 text-right">누적시간</th>
+                  </tr>
+                </thead>
+                <tbody id="hall-of-fame-body" class="divide-y divide-white/5"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="text-center py-3 text-[11px] text-slate-500 border-t border-white/5">
+      WASD 이동 · 마우스 시점 회전 · E 상호작용(업무/훈련/선거/국정) · Tab 전체 조직도 &amp; 랭킹
+    </footer>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 2. 진로 선택 모달 (육군 vs 기업)                                       -->
+  <!-- ===================================================================== -->
+  <div id="track-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="max-w-3xl w-full glass-panel rounded-3xl p-6 sm:p-8 space-y-6 border border-amber-400/30">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold text-amber-400">CAREER SELECTION</span>
+          <h2 class="text-2xl font-black text-white mt-0.5">시작할 소속을 선택하세요</h2>
+        </div>
+        <button onclick="closeTrackModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <div id="existing-save-banner" class="hidden rounded-2xl bg-amber-500/15 border border-amber-400/40 p-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="text-xs text-amber-200">
+          <strong id="save-banner-title">기존 진급 기록이 있습니다!</strong>
+          <p id="save-banner-desc" class="text-amber-100/80 mt-0.5"></p>
+        </div>
+        <button onclick="resumeSavedGame()" class="btn-gold px-4 py-2 rounded-xl text-xs">
+          이어서 플레이 →
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- 육군 선택 -->
+        <div class="rounded-2xl bg-slate-950/90 border border-emerald-500/40 p-5 flex flex-col justify-between space-y-4">
+          <div class="space-y-2">
+            <div class="text-3xl">🪖</div>
+            <h3 class="text-xl font-black text-emerald-300">대한민국 육군 (ROKA)</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              최하위 <strong>이병</strong>으로 입대합니다. 연병장 훈련과 지휘소 근무를 통해 장교·장성(대장)까지 진급한 뒤, 국무총리를 거쳐 대통령에 오릅니다.
+            </p>
+            <ul class="text-[11px] text-slate-400 space-y-1 pt-2 border-t border-white/10">
+              <li>• 시작 계급: <span class="text-white font-bold">이병</span></li>
+              <li>• 진급 속도: 묵직함 (상급자 T/O 경쟁 비중 높음)</li>
+              <li>• 대통령 도달 목표 시간: 약 75~90분</li>
+            </ul>
+          </div>
+          <button onclick="startNewCareer('army')" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition">
+            이병으로 입대하기
+          </button>
+        </div>
+
+        <!-- 기업 선택 -->
+        <div class="rounded-2xl bg-slate-950/90 border border-blue-500/40 p-5 flex flex-col justify-between space-y-4">
+          <div class="space-y-2">
+            <div class="text-3xl">🏢</div>
+            <h3 class="text-xl font-black text-blue-300">대한민국 대기업 &amp; 정계</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              <strong>사원</strong>으로 입사해 초고속 승진으로 <strong>회장</strong>에 오른 뒤, 정계에 진출하여 <strong>국회의원·의장·시장·총리·대통령 선거</strong>에 출마합니다.
+            </p>
+            <ul class="text-[11px] text-slate-400 space-y-1 pt-2 border-t border-white/10">
+              <li>• 시작 직급: <span class="text-white font-bold">사원</span></li>
+              <li>• 승진 속도: 빠름 (회장 이후 선거 캠페인 필수)</li>
+              <li>• 대통령 도달 목표 시간: 약 60~70분</li>
+            </ul>
+          </div>
+          <button onclick="startNewCareer('corp')" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm transition">
+            사원으로 입사하기
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 3. 1인칭 3D 게임 플레이 화면 & 오버레이 HUD                           -->
+  <!-- ===================================================================== -->
+  <div id="screen-game" class="hidden fixed inset-0 w-screen h-screen overflow-hidden">
+    <!-- Three.js 3D 캔버스 컨테이너 -->
+    <div id="three-container" class="absolute inset-0 w-full h-full"></div>
+
+    <!-- 조준점 -->
+    <div id="crosshair"></div>
+
+    <!-- 상단 HUD: 계급, 진행률, 시간, 상급자 T/O -->
+    <div class="fixed top-3 left-3 right-3 z-30 flex flex-wrap items-start justify-between gap-3 pointer-events-none">
+      <!-- 왼쪽 프로필 & 진급 게이지 -->
+      <div class="glass-panel rounded-2xl p-3.5 sm:p-4 pointer-events-auto max-w-md w-full space-y-2.5 shadow-2xl">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <span id="hud-track-badge" class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-black">육군</span>
+            <span id="hud-rank-title" class="text-lg font-black text-amber-300">이병</span>
+            <span id="hud-player-name" class="text-xs text-slate-300 font-bold">플레이어</span>
+          </div>
+          <span id="hud-room-tag" class="text-[11px] font-mono-num px-2 py-0.5 rounded bg-slate-900 text-slate-400">SOLO</span>
+        </div>
+
+        <!-- 진급/승진 경험치 바 -->
+        <div>
+          <div class="flex justify-between text-[11px] mb-1">
+            <span class="text-slate-300">다음 직위: <strong id="hud-next-rank" class="text-white">일병</strong></span>
+            <span id="hud-xp-text" class="font-mono-num text-amber-300">0 / 100 공적</span>
+          </div>
+          <div class="w-full h-2.5 rounded-full bg-slate-950 overflow-hidden border border-white/10">
+            <div id="hud-xp-bar" class="h-full bg-gradient-to-r from-blue-500 via-amber-400 to-amber-300 transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- 핵심 조건 3가지 -->
+        <div class="grid grid-cols-3 gap-2 text-[11px] bg-slate-950/75 rounded-xl p-2 border border-white/5">
+          <div>
+            <div class="text-slate-400 text-[10px]">누적 근무시간</div>
+            <div id="hud-playtime" class="font-mono-num font-bold text-white">00분 00초</div>
+          </div>
+          <div>
+            <div class="text-slate-400 text-[10px]">상급자 정원(T/O)</div>
+            <div id="hud-to-status" class="font-mono-num font-bold text-emerald-400">여유 (3/12)</div>
+          </div>
+          <div>
+            <div class="text-slate-400 text-[10px]">보유 자금/예산</div>
+            <div id="hud-money" class="font-mono-num font-bold text-amber-300">150만원</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 오른쪽 컨트롤 & 시점 잠금 안내 -->
+      <div class="flex flex-col items-end gap-2 pointer-events-auto">
+        <div class="glass-panel rounded-2xl px-3.5 py-2.5 flex flex-wrap items-center gap-2 text-xs">
+          <button onclick="toggleBgmMute()" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-black">
+            <span id="game-bgm-icon">🔊</span> <span id="game-bgm-text">BGM</span>
+          </button>
+          <button id="btn-lock-pointer" onclick="requestPointerLockSafe()" class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-black">
+            🎯 1인칭 마우스 시점 켜기
+          </button>
+          <button onclick="toggleOrgModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold">
+            📊 조직도·AI현황 (Tab)
+          </button>
+          <button onclick="exitToLobby()" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-rose-950 text-slate-300 hover:text-rose-200 font-bold">
+            로비로
+          </button>
+        </div>
+
+        <!-- 대통령 전용 국정 타이쿤 빠른 버튼 (대통령 달성 시 활성화) -->
+        <button id="btn-president-tycoon" onclick="openPresidentModal()" class="hidden btn-gold px-4 py-2.5 rounded-2xl text-xs shadow-xl animate-pulse">
+          🏛 대통령 집무실 · 대한민국 국정 운영 타이쿤 열기
+        </button>
+      </div>
+    </div>
+
+    <!-- 중앙 하단: 가까운 구역 상호작용 안내 & 수동 액션 버튼 -->
+    <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 w-full max-w-xl px-4 pointer-events-auto">
+      <div class="glass-panel rounded-2xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 border border-amber-400/30 shadow-2xl">
+        <div>
+          <div id="zone-title" class="text-xs font-black text-amber-300">📍 대한민국 중앙 광장 (대한민국 본부)</div>
+          <div id="zone-desc" class="text-[11px] text-slate-300 mt-0.5">WASD로 이동해 훈련장·업무타워·국회선거본부·청와대로 걸어가세요.</div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="btn-zone-action" onclick="triggerZoneAction()" class="btn-primary px-4 py-2.5 rounded-xl text-xs font-black text-white">
+            업무 / 훈련 수행 (E)
+          </button>
+          <button id="btn-promote-now" onclick="attemptPromotion()" class="hidden btn-gold px-4 py-2.5 rounded-xl text-xs">
+            ⭐ 진급·선거 도전!
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 좌측 하단: 실시간 진급·승진 및 AI 동향 피드 -->
+    <div class="hidden md:block fixed bottom-4 left-4 z-20 w-80 glass-panel rounded-2xl p-3 pointer-events-none">
+      <div class="text-[11px] font-black text-slate-300 mb-1.5">📡 대한민국 인사·정치 실시간 속보</div>
+      <div id="live-feed-box" class="h-28 overflow-y-auto space-y-1 text-[11px] text-slate-300 font-mono-num"></div>
+    </div>
+
+    <!-- 모바일 터치 조이스틱 (터치 기기 대응) -->
+    <div class="md:hidden fixed bottom-24 left-4 z-30 grid grid-cols-3 gap-1 w-28 h-28 opacity-80">
+      <div></div>
+      <button ontouchstart="mobileKeys.w=true" ontouchend="mobileKeys.w=false" class="bg-slate-800/90 rounded-lg text-white font-bold">▲</button>
+      <div></div>
+      <button ontouchstart="mobileKeys.a=true" ontouchend="mobileKeys.a=false" class="bg-slate-800/90 rounded-lg text-white font-bold">◀</button>
+      <button ontouchstart="mobileKeys.s=true" ontouchend="mobileKeys.s=false" class="bg-slate-800/90 rounded-lg text-white font-bold">▼</button>
+      <button ontouchstart="mobileKeys.d=true" ontouchend="mobileKeys.d=false" class="bg-slate-800/90 rounded-lg text-white font-bold">▶</button>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 4. 조직도 & AI 인구 40명 현황 모달 (Tab)                               -->
+  <!-- ===================================================================== -->
+  <div id="org-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="max-w-4xl w-full glass-panel rounded-3xl p-6 space-y-4 max-h-[88vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div>
+          <h3 class="text-lg font-black text-white">🇰🇷 대한민국 실시간 계급·직위 분포도 (유저 + AI 시민 40명)</h3>
+          <p class="text-xs text-slate-400">상급자 T/O(정원)가 꽉 차 있으면 상급자가 은퇴하거나 밀려날 때까지 대기하거나 경쟁해야 합니다.</p>
+        </div>
+        <button onclick="toggleOrgModal()" class="px-3 py-1 rounded-lg bg-slate-800 text-xs font-bold text-white">닫기 (Tab)</button>
+      </div>
+      <div id="org-list-container" class="overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pr-1 text-xs"></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 5. 선거 유세 미니 모달 (기업→정계 트랙 전용)                           -->
+  <!-- ===================================================================== -->
+  <div id="election-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="max-w-lg w-full glass-panel rounded-3xl p-6 space-y-5 border border-blue-400/40">
+      <div>
+        <span class="text-xs font-bold text-blue-400">REPUBLIC OF KOREA ELECTION</span>
+        <h3 id="election-title" class="text-xl font-black text-white mt-1">대한민국 공직 선거 투표</h3>
+        <p id="election-desc" class="text-xs text-slate-300 mt-1">AI 유권자 40명과 접속 중인 플레이어들의 지지율을 합산해 당락을 결정합니다.</p>
+      </div>
+
+      <div class="rounded-2xl bg-slate-950/90 border border-white/10 p-4 space-y-3">
+        <div class="flex justify-between text-xs">
+          <span class="text-slate-400">현재 예상 지지율</span>
+          <span id="election-support-pct" class="font-mono-num font-black text-amber-300">42.0%</span>
+        </div>
+        <div class="w-full h-3 rounded-full bg-slate-900 overflow-hidden">
+          <div id="election-support-bar" class="h-full bg-gradient-to-r from-blue-500 to-amber-400" style="width: 42%"></div>
+        </div>
+        <div class="flex flex-wrap gap-2 pt-2">
+          <button onclick="boostElectionSupport(8, 500)" class="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white">
+            📺 TV 토론·유세 (+8% / 500만원)
+          </button>
+          <button onclick="boostElectionSupport(15, 1200)" class="flex-1 py-2 px-3 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-400/40 text-xs font-bold text-blue-200">
+            🎤 전국 순회 연설 (+15% / 1,200만원)
+          </button>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="closeElectionModal()" class="flex-1 py-3 rounded-xl bg-slate-900 text-xs font-bold text-slate-400">취소</button>
+        <button onclick="castElectionVote()" class="flex-1 btn-gold py-3 rounded-xl text-xs">개표 및 당선 확정 도전!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 6. 대통령 국정 운영 & 나라 꾸미기 타이쿤 모달                         -->
+  <!-- ===================================================================== -->
+  <div id="president-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="max-w-4xl w-full glass-panel rounded-3xl p-6 sm:p-8 space-y-6 border border-amber-400/50 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-white/10 pb-4">
+        <div>
+          <span class="text-xs font-black text-amber-400">PRESIDENT TYCOON MODE · 청와대 집무실</span>
+          <h2 class="text-2xl font-black text-white mt-0.5">🇰🇷 대한민국 국정 운영 &amp; 3D 도시 건설</h2>
+          <p class="text-xs text-slate-300">건설한 랜드마크와 정책은 바깥 3D 대한민국 필드에 실시간 건축물로 세워집니다!</p>
+        </div>
+        <button onclick="closePresidentModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 text-xs font-bold text-white">집무실 나가기</button>
+      </div>
+
+      <!-- 국가 지표 4종 -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="rounded-2xl bg-slate-950/90 border border-white/10 p-3.5">
+          <div class="text-[11px] text-slate-400">국고 예산</div>
+          <div id="nat-budget" class="text-lg font-black font-mono-num text-amber-300 mt-0.5">50,000억</div>
+        </div>
+        <div class="rounded-2xl bg-slate-950/90 border border-white/10 p-3.5">
+          <div class="text-[11px] text-slate-400">국민 행복지수</div>
+          <div id="nat-happy" class="text-lg font-black font-mono-num text-emerald-400 mt-0.5">72%</div>
+        </div>
+        <div class="rounded-2xl bg-slate-950/90 border border-white/10 p-3.5">
+          <div class="text-[11px] text-slate-400">국방·안보력</div>
+          <div id="nat-defense" class="text-lg font-black font-mono-num text-blue-400 mt-0.5">75</div>
+        </div>
+        <div class="rounded-2xl bg-slate-950/90 border border-white/10 p-3.5">
+          <div class="text-[11px] text-slate-400">국가 경제성장률</div>
+          <div id="nat-economy" class="text-lg font-black font-mono-num text-rose-400 mt-0.5">+3.4%</div>
+        </div>
+      </div>
+
+      <!-- 3D 대한민국 랜드마크 건설 타이쿤 -->
+      <div class="space-y-3">
+        <h3 class="text-sm font-black text-amber-300">🏗 대한민국 3D 국책 랜드마크 건설 (3D 월드에 즉시 반영)</h3>
+        <div id="tycoon-buildings-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+      </div>
+
+      <!-- 대통령 국정 정책 결재 -->
+      <div class="space-y-3">
+        <h3 class="text-sm font-black text-blue-300">📜 대통령 긴급 명령 및 정책 집행</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <button onclick="enactPolicy('tax_cut')" class="p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-900 border border-white/10 text-left space-y-1">
+            <div class="font-black text-emerald-300">💰 전 국민 민생 감세</div>
+            <div class="text-slate-400">국고 -8,000억 · 행복도 +10% · 경제 +0.6%</div>
+          </button>
+          <button onclick="enactPolicy('defense_up')" class="p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-900 border border-white/10 text-left space-y-1">
+            <div class="font-black text-blue-300">🛡 첨단 국방 전력 증강</div>
+            <div class="text-slate-400">국고 -10,000억 · 국방력 +15 · AI 군사기 증가</div>
+          </button>
+          <button onclick="enactPolicy('tech_boom')" class="p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-900 border border-white/10 text-left space-y-1">
+            <div class="font-black text-amber-300">🚀 K-반도체·AI 초격차 투자</div>
+            <div class="text-slate-400">국고 -12,000억 · 매 10초 국고 세수 +3,500억 증가</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 7. Firebase 설정 모달                                                 -->
+  <!-- ===================================================================== -->
+  <div id="firebase-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="max-w-lg w-full glass-panel rounded-3xl p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-black text-white">⚙ Firebase 실시간 서버 연동 설정</h3>
+        <button onclick="closeFirebaseModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <p class="text-xs text-slate-300 leading-relaxed">
+        친구와 서로 다른 기기에서 실시간으로 함께 플레이하고 Google 로그인을 사용하려면 Firebase 프로젝트의
+        <span class="text-amber-300 font-mono-num">firebaseConfig</span> JSON을 입력하세요.
+      </p>
+      <textarea id="firebase-config-input" rows="6" placeholder='{"apiKey":"...","authDomain":"...","databaseURL":"https://...","projectId":"...","appId":"..."}'
+        class="w-full p-3 rounded-xl bg-slate-950 border border-white/15 text-xs font-mono-num text-amber-200 focus:outline-none focus:border-amber-400"></textarea>
+      <div class="flex justify-end gap-2">
+        <button onclick="clearFirebaseConfig()" class="px-3.5 py-2 rounded-xl bg-slate-900 text-xs text-slate-400">초기화</button>
+        <button onclick="saveFirebaseConfig()" class="btn-gold px-4 py-2 rounded-xl text-xs">저장 및 연결</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <script>
+    /*************************************************************************
+     * 0. 웅장한 오케스트라·브라스·팀파니 BGM 엔진 (Web Audio API)
+     *************************************************************************/
+    const EpicBgmEngine = (() => {
+      let ctx = null;
+      let masterGain = null;
+      let isPlaying = false;
+      let isMuted = false;
+      let volume = 0.45;
+      let stepTimer = null;
+      let stepIndex = 0;
+      let currentMood = 'lobby'; // 'lobby' | 'army' | 'corp' | 'president'
+
+      // 웅장한 단조/장조 장엄 진행 (D minor -> Bb major -> G minor -> A major)
+      const CHORD_PROGRESSION = [
+        { root: 73.42, notes: [146.83, 174.61, 220.00, 293.66] }, // Dm
+        { root: 58.27, notes: [116.54, 146.83, 174.61, 233.08] }, // Bb
+        { root: 98.00, notes: [196.00, 233.08, 293.66, 392.00] }, // Gm
+        { root: 110.00, notes: [110.00, 164.81, 220.00, 277.18] } // A7 / 장엄 클라이맥스
+      ];
+
+      // 웅장한 브라스·현악 멜로디 라인 (주파수 Hz, 0이면 휴지)
+      const HEROIC_MELODY = [
+        293.66, 0, 349.23, 440.00, 587.33, 0, 523.25, 440.00,
+        466.16, 0, 349.23, 392.00, 440.00, 0, 349.23, 293.66,
+        392.00, 0, 466.16, 587.33, 698.46, 0, 587.33, 466.16,
+        440.00, 554.37, 659.25, 880.00, 739.99, 659.25, 554.37, 440.00
+      ];
+
+      function ensureContext() {
+        if (!ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          ctx = new AudioCtx();
+          masterGain = ctx.createGain();
+          masterGain.gain.value = isMuted ? 0 : volume;
+          masterGain.connect(ctx.destination);
+        }
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
+      }
+
+      // 웅장한 브라스/오케스트라 패드 노트 재생
+      function playBrassNote(freq, duration, peakGain = 0.08, type = 'sawtooth') {
+        if (!ctx || !masterGain || freq <= 0 || isMuted) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const filter = ctx.createBiquadFilter();
+        const env = ctx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(freq * 1.003, now); // 코러스 두께감
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1600, now);
+        filter.frequency.exponentialRampToValueAtTime(650, now + duration);
+
+        env.gain.setValueAtTime(0.0001, now);
+        env.gain.linearRampToValueAtTime(peakGain, now + 0.04);
+        env.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        osc.connect(filter);
+        osc2.connect(filter);
+        filter.connect(env);
+        env.connect(masterGain);
+
+        osc.start(now);
+        osc2.start(now);
+        osc.stop(now + duration + 0.02);
+        osc2.stop(now + duration + 0.02);
+      }
+
+      // 웅장한 팀파니 / 군북 타격음
+      function playTimpani(freq, gainAmt = 0.24) {
+        if (!ctx || !masterGain || isMuted) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const env = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq * 1.35, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.65, now + 0.35);
+
+        env.gain.setValueAtTime(gainAmt, now);
+        env.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+
+        osc.connect(env);
+        env.connect(masterGain);
+
+        osc.start(now);
+        osc.stop(now + 0.45);
+      }
+
+      function tickStep() {
+        if (!isPlaying || !ctx || isMuted) return;
+        const chordIdx = Math.floor(stepIndex / 8) % CHORD_PROGRESSION.length;
+        const chord = CHORD_PROGRESSION[chordIdx];
+        const beatInBar = stepIndex % 8;
+
+        // 매 마디 첫 박과 5박에 웅장한 저음 코드 패드 & 팀파니
+        if (beatInBar === 0 || beatInBar === 4) {
+          const padGain = currentMood === 'president' ? 0.065 : 0.05;
+          chord.notes.forEach(n => playBrassNote(n * 0.5, 1.45, padGain, 'triangle'));
+          playTimpani(chord.root, beatInBar === 0 ? 0.26 : 0.16);
+        }
+
+        // 웅장한 리드 브라스 멜로디
+        const melNote = HEROIC_MELODY[stepIndex % HEROIC_MELODY.length];
+        if (melNote > 0) {
+          const octaveBoost = currentMood === 'president' ? 1.15 : 1.0;
+          playBrassNote(melNote, 0.36, 0.065 * octaveBoost, 'sawtooth');
+        }
+
+        stepIndex++;
+      }
+
+      function start(mood = null) {
+        if (mood) currentMood = mood;
+        ensureContext();
+        if (isPlaying) return;
+        isPlaying = true;
+        stepTimer = setInterval(tickStep, 300); // 장엄한 행진 템포
+        syncBgmUI();
+      }
+
+      function setMood(mood) {
+        currentMood = mood;
+        if (!isPlaying && !isMuted) start(mood);
+      }
+
+      function toggleMute() {
+        ensureContext();
+        isMuted = !isMuted;
+        if (masterGain) {
+          masterGain.gain.setTargetAtTime(isMuted ? 0 : volume, ctx.currentTime, 0.05);
+        }
+        if (!isMuted && !isPlaying) start(currentMood);
+        syncBgmUI();
+      }
+
+      function setVolume(val) {
+        volume = Math.max(0, Math.min(1, Number(val) / 100));
+        if (volume > 0 && isMuted) {
+          isMuted = false;
+          ensureContext();
+          if (!isPlaying) start(currentMood);
+        }
+        if (masterGain && ctx) {
+          masterGain.gain.setTargetAtTime(isMuted ? 0 : volume, ctx.currentTime, 0.05);
+        }
+        syncBgmUI();
+      }
+
+      function syncBgmUI() {
+        const active = !isMuted && volume > 0;
+        const icon = active ? '🔊' : '🔇';
+        const label = active ? '웅장 BGM ON' : 'BGM 음소거';
+        const lIcon = document.getElementById('bgm-icon');
+        const lLabel = document.getElementById('bgm-label');
+        const gIcon = document.getElementById('game-bgm-icon');
+        const gText = document.getElementById('game-bgm-text');
+        if (lIcon) lIcon.textContent = icon;
+        if (lLabel) lLabel.textContent = label;
+        if (gIcon) gIcon.textContent = icon;
+        if (gText) gText.textContent = active ? 'BGM ON' : 'OFF';
+      }
+
+      return { start, setMood, toggleMute, setVolume };
+    })();
+
+    function toggleBgmMute() {
+      EpicBgmEngine.toggleMute();
+    }
+    function setBgmVolume(val) {
+      EpicBgmEngine.setVolume(val);
+    }
+
+    // 첫 사용자 클릭/키 입력 시 웅장한 BGM 자동 시작
+    window.addEventListener('pointerdown', () => EpicBgmEngine.start('lobby'), { once: true });
+    window.addEventListener('keydown', () => EpicBgmEngine.start('lobby'), { once: true });
+
+    /*************************************************************************
+     * 1. 계급 및 직위 체계 정의 (육군 20단계 vs 기업+선거 15단계)
+     * - 대통령 도달까지 최소 1시간(3,600초) 이상 소요되도록 시간·공적 임계값 설계
+     *************************************************************************/
+    const ARMY_RANKS = [
+      { name: '이병', reqXp: 100, minSec: 90, toMax: 15, salary: 80 },
+      { name: '일병', reqXp: 240, minSec: 210, toMax: 12, salary: 100 },
+      { name: '상병', reqXp: 420, minSec: 360, toMax: 10, salary: 120 },
+      { name: '병장', reqXp: 650, minSec: 540, toMax: 8, salary: 150 },
+      { name: '하사', reqXp: 950, minSec: 750, toMax: 7, salary: 250 },
+      { name: '중사', reqXp: 1300, minSec: 990, toMax: 6, salary: 320 },
+      { name: '상사', reqXp: 1700, minSec: 1260, toMax: 5, salary: 400 },
+      { name: '원사', reqXp: 2150, minSec: 1530, toMax: 4, salary: 480 },
+      { name: '소위', reqXp: 2650, minSec: 1800, toMax: 5, salary: 360 },
+      { name: '중위', reqXp: 3200, minSec: 2070, toMax: 4, salary: 420 },
+      { name: '대위', reqXp: 3850, minSec: 2340, toMax: 4, salary: 520 },
+      { name: '소령', reqXp: 4600, minSec: 2640, toMax: 3, salary: 650 },
+      { name: '중령', reqXp: 5450, minSec: 2940, toMax: 3, salary: 780 },
+      { name: '대령', reqXp: 6400, minSec: 3240, toMax: 2, salary: 920 },
+      { name: '준장', reqXp: 7500, minSec: 3540, toMax: 2, salary: 1100 },
+      { name: '소장', reqXp: 8700, minSec: 3840, toMax: 2, salary: 1300 },
+      { name: '중장', reqXp: 10000, minSec: 4140, toMax: 2, salary: 1500 },
+      { name: '대장', reqXp: 11500, minSec: 4440, toMax: 1, salary: 1800 },
+      { name: '국무총리', reqXp: 13500, minSec: 4800, toMax: 1, salary: 2500 },
+      { name: '대통령', reqXp: 999999, minSec: 4800, toMax: 1, salary: 5000 }
+    ];
+
+    const CORP_RANKS = [
+      { name: '사원', reqXp: 80, minSec: 60, toMax: 15, salary: 250, election: false },
+      { name: '대리', reqXp: 200, minSec: 180, toMax: 12, salary: 350, election: false },
+      { name: '과장', reqXp: 360, minSec: 330, toMax: 10, salary: 480, election: false },
+      { name: '차장', reqXp: 560, minSec: 510, toMax: 8, salary: 620, election: false },
+      { name: '부장', reqXp: 820, minSec: 720, toMax: 6, salary: 800, election: false },
+      { name: '상무', reqXp: 1150, minSec: 960, toMax: 5, salary: 1100, election: false },
+      { name: '전무', reqXp: 1550, minSec: 1230, toMax: 4, salary: 1500, election: false },
+      { name: '부사장', reqXp: 2050, minSec: 1530, toMax: 3, salary: 2100, election: false },
+      { name: '사장', reqXp: 2650, minSec: 1860, toMax: 2, salary: 3000, election: false },
+      { name: '회장', reqXp: 3400, minSec: 2220, toMax: 2, salary: 5000, election: false },
+      { name: '국회의원', reqXp: 4300, minSec: 2580, toMax: 4, salary: 1400, election: true },
+      { name: '국회의장', reqXp: 5400, minSec: 2940, toMax: 1, salary: 1800, election: true },
+      { name: '서울시장', reqXp: 6700, minSec: 3300, toMax: 1, salary: 2200, election: true },
+      { name: '국무총리', reqXp: 8200, minSec: 3660, toMax: 1, salary: 2600, election: true },
+      { name: '대통령', reqXp: 999999, minSec: 3660, toMax: 1, salary: 5000, election: true }
+    ];
+
+    const KOREAN_NAMES = [
+      '김민준', '이서연', '박지훈', '최하은', '정우진', '강민서', '조현우', '윤서아',
+      '장준혁', '임지민', '한승현', '오채원', '서민재', '신유진', '권태윤', '황수빈',
+      '안지호', '송다은', '전현준', '홍서윤', '유성민', '고예린', '문재현', '양소율',
+      '배도현', '백지우', '허준서', '남궁민', '노하윤', '심재원', '하서진', '곽민규',
+      '성예준', '차유나', '주현성', '우지안', '구본혁', '민서현', '류시우', '진아린'
+    ];
+
+    const TYCOON_BUILDINGS = [
+      { id: 'namsan_tower', name: 'N서울타워 & 전망대', cost: 8000, happy: 8, econ: 0.4, def: 0, pos: [-26, 0, -28], color: 0xf59e0b },
+      { id: 'k_defense_hq', name: '합동첨단국방사령부', cost: 12000, happy: 2, econ: 0.2, def: 18, pos: [28, 0, -26], color: 0x10b981 },
+      { id: 'semicon_cluster', name: '용인·평택 반도체 메가클러스터', cost: 15000, happy: 5, econ: 1.2, def: 4, pos: [-28, 0, 26], color: 0x3b82f6 },
+      { id: 'ktx_hub', name: '전국 초고속 GTX·KTX 허브', cost: 10000, happy: 10, econ: 0.7, def: 3, pos: [28, 0, 26], color: 0xa855f7 },
+      { id: 'space_center', name: '나로우주센터 제2발사대', cost: 18000, happy: 9, econ: 0.9, def: 12, pos: [0, 0, -40], color: 0xef4444 },
+      { id: 'han_river_park', name: '한강 친환경 수변 문화도시', cost: 7000, happy: 14, econ: 0.3, def: 0, pos: [0, 0, 38], color: 0x06b6d4 }
+    ];
+
+    /*************************************************************************
+     * 2. Firebase & 실시간 동기화 설정
+     *************************************************************************/
+    let firebaseDb = null;
+    let firebaseAuth = null;
+    let isFirebaseLive = false;
+    const syncChannel = new BroadcastChannel('k_promotion_3d_sync');
+
+    function initFirebase() {
+      const raw = localStorage.getItem('kp3d_firebase_cfg');
+      const badge = document.getElementById('sync-badge');
+      if (!raw) return;
+      try {
+        const cfg = JSON.parse(raw);
+        if (!firebase.apps.length) firebase.initializeApp(cfg);
+        firebaseDb = firebase.database();
+        firebaseAuth = firebase.auth();
+        isFirebaseLive = true;
+        badge.textContent = '● Firebase 라이브 서버 연결됨';
+        badge.className = 'text-[11px] px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 font-bold';
+      } catch (e) {
+        console.warn('Firebase 설정 오류:', e);
+      }
+    }
+
+    function openFirebaseModal() {
+      document.getElementById('firebase-config-input').value = localStorage.getItem('kp3d_firebase_cfg') || '';
+      document.getElementById('firebase-modal').classList.remove('hidden');
+    }
+    function closeFirebaseModal() { document.getElementById('firebase-modal').classList.add('hidden'); }
+    function saveFirebaseConfig() {
+      const val = document.getElementById('firebase-config-input').value.trim();
+      try {
+        JSON.parse(val);
+        localStorage.setItem('kp3d_firebase_cfg', val);
+        initFirebase();
+        closeFirebaseModal();
+        renderHallOfFame();
+        alert('Firebase 연동이 완료되었습니다!');
+      } catch {
+        alert('올바른 JSON 형식의 Firebase Config를 입력해주세요.');
+      }
+    }
+    function clearFirebaseConfig() {
+      localStorage.removeItem('kp3d_firebase_cfg');
+      location.reload();
+    }
+
+    /*************************************************************************
+     * 3. 플레이어 프로필, 저장 데이터, 랭킹 및 함께하기 방 관리
+     *************************************************************************/
+    let userProfile = {
+      uid: localStorage.getItem('kp3d_uid') || ('kr_' + Math.random().toString(36).slice(2, 10)),
+      name: localStorage.getItem('kp3d_name') || ('시민_' + Math.floor(100 + Math.random() * 900))
+    };
+    localStorage.setItem('kp3d_uid', userProfile.uid);
+
+    let activeRoomCode = null;
+    let gameLoopTimer = null;
+
+    let state = {
+      track: 'army', // 'army' | 'corp'
+      rankIdx: 0,
+      xp: 0,
+      playSeconds: 0,
+      money: 150, // 만원 단위
+      electionSupport: 35,
+      aiCitizens: [],
+      remotePlayers: {},
+      nation: {
+        budget: 50000, // 억 원
+        happy: 72,
+        defense: 75,
+        economy: 3.4,
+        builtIds: []
+      }
+    };
+
+    function updateLobbyUserUI() {
+      document.getElementById('lobby-user-badge').textContent = userProfile.name;
+      document.getElementById('nickname-input').value = userProfile.name;
+    }
+
+    function saveNickname() {
+      const v = document.getElementById('nickname-input').value.trim();
+      if (!v) return alert('이름을 입력해주세요.');
+      userProfile.name = v;
+      localStorage.setItem('kp3d_name', v);
+      updateLobbyUserUI();
+    }
+
+    async function loginWithGoogle() {
+      if (!isFirebaseLive || !firebaseAuth) {
+        alert('Google 로그인을 사용하려면 우측 상단 [⚙ Firebase 설정]에서 Firebase Config를 먼저 입력해주세요. (이름 입력만으로도 모든 플레이가 가능합니다!)');
+        return;
+      }
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const res = await firebaseAuth.signInWithPopup(provider);
+        if (res.user) {
+          userProfile.uid = res.user.uid;
+          userProfile.name = res.user.displayName || '대한민국시민';
+          localStorage.setItem('kp3d_uid', userProfile.uid);
+          localStorage.setItem('kp3d_name', userProfile.name);
+          updateLobbyUserUI();
+          document.getElementById('auth-status-text').textContent = `Google 연동됨 (${res.user.email})`;
+        }
+      } catch (e) {
+        alert('Google 로그인 실패: ' + e.message);
+      }
+    }
+
+    function openTrackModal(mode) {
+      EpicBgmEngine.start('lobby');
+      if (mode === 'solo') activeRoomCode = null;
+      const savedRaw = localStorage.getItem('kp3d_save_' + userProfile.uid);
+      const banner = document.getElementById('existing-save-banner');
+      if (savedRaw) {
+        const s = JSON.parse(savedRaw);
+        const ranks = s.track === 'army' ? ARMY_RANKS : CORP_RANKS;
+        const rName = ranks[s.rankIdx]?.name || '이병';
+        banner.classList.remove('hidden');
+        document.getElementById('save-banner-title').textContent = `저장된 기록 발견: [${s.track === 'army' ? '육군' : '기업·정계'}] ${rName}`;
+        document.getElementById('save-banner-desc').textContent = `누적 근무시간 ${formatTime(s.playSeconds)} · 보유 자금 ${s.money.toLocaleString()}만원`;
+      } else {
+        banner.classList.add('hidden');
+      }
+      document.getElementById('track-modal').classList.remove('hidden');
+    }
+    function closeTrackModal() { document.getElementById('track-modal').classList.add('hidden'); }
+
+    function createTogetherRoom() {
+      EpicBgmEngine.start('lobby');
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      activeRoomCode = code;
+      alert(`함께하기 방 코드 [${code}]가 생성되었습니다!\n친구에게 이 코드를 알려주고 진로를 선택해 입장하세요.`);
+      openTrackModal('multi');
+    }
+
+    function joinTogetherRoom() {
+      EpicBgmEngine.start('lobby');
+      const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+      if (code.length < 4) return alert('6자리 방 코드를 입력해주세요.');
+      activeRoomCode = code;
+      openTrackModal('multi');
+    }
+
+    function generateAICitizens() {
+      const list = [];
+      for (let i = 0; i < 40; i++) {
+        const isArmy = i < 20;
+        const maxInitIdx = isArmy ? 14 : 11;
+        const rIdx = Math.floor(Math.pow(Math.random(), 1.6) * maxInitIdx);
+        list.push({
+          id: 'ai_' + i,
+          name: KOREAN_NAMES[i % KOREAN_NAMES.length],
+          track: isArmy ? 'army' : 'corp',
+          rankIdx: rIdx,
+          x: (Math.random() - 0.5) * 68,
+          z: (Math.random() - 0.5) * 68,
+          dir: Math.random() * Math.PI * 2
+        });
+      }
+      return list;
+    }
+
+    function startNewCareer(track) {
+      state = {
+        track,
+        rankIdx: 0,
+        xp: 0,
+        playSeconds: 0,
+        money: track === 'army' ? 150 : 300,
+        electionSupport: 35,
+        aiCitizens: generateAICitizens(),
+        remotePlayers: {},
+        nation: { budget: 50000, happy: 72, defense: 75, economy: 3.4, builtIds: [] }
+      };
+      saveProgress();
+      closeTrackModal();
+      enter3DWorld();
+    }
+
+    function resumeSavedGame() {
+      const savedRaw = localStorage.getItem('kp3d_save_' + userProfile.uid);
+      if (!savedRaw) return;
+      state = JSON.parse(savedRaw);
+      if (!state.aiCitizens || state.aiCitizens.length === 0) state.aiCitizens = generateAICitizens();
+      if (!state.nation) state.nation = { budget: 50000, happy: 72, defense: 75, economy: 3.4, builtIds: [] };
+      closeTrackModal();
+      enter3DWorld();
+    }
+
+    function saveProgress() {
+      localStorage.setItem('kp3d_save_' + userProfile.uid, JSON.stringify(state));
+      syncHallOfFame();
+      broadcastMultiplayerState();
+    }
+
+    async function syncHallOfFame() {
+      const ranks = state.track === 'army' ? ARMY_RANKS : CORP_RANKS;
+      const entry = {
+        uid: userProfile.uid,
+        name: userProfile.name,
+        track: state.track,
+        rankIdx: state.rankIdx,
+        rankName: ranks[state.rankIdx].name,
+        playSeconds: state.playSeconds
+      };
+      const raw = localStorage.getItem('kp3d_hof');
+      const list = raw ? JSON.parse(raw) : [];
+      const idx = list.findIndex(x => x.uid === entry.uid);
+      if (idx >= 0) {
+        if (entry.rankIdx >= list[idx].rankIdx || entry.playSeconds > list[idx].playSeconds) {
+          list[idx] = entry;
+        }
+      } else {
+        list.push(entry);
+      }
+      localStorage.setItem('kp3d_hof', JSON.stringify(list));
+      if (isFirebaseLive && firebaseDb) {
+        firebaseDb.ref('kp3d_hall_of_fame/' + entry.uid).set(entry);
+      }
+    }
+
+    async function renderHallOfFame() {
+      let list = [];
+      if (isFirebaseLive && firebaseDb) {
+        try {
+          const snap = await firebaseDb.ref('kp3d_hall_of_fame').once('value');
+          if (snap.val()) list = Object.values(snap.val());
+        } catch {}
+      }
+      if (list.length === 0) {
+        const raw = localStorage.getItem('kp3d_hof');
+        list = raw ? JSON.parse(raw) : [
+          { uid: 's1', name: '김도윤', rankName: '대통령', rankIdx: 19, playSeconds: 5120 },
+          { uid: 's2', name: '이서연', rankName: '국무총리', rankIdx: 18, playSeconds: 4610 },
+          { uid: 's3', name: '박지훈', rankName: '대장', rankIdx: 17, playSeconds: 4230 }
+        ];
+      }
+      list.sort((a, b) => (b.rankIdx - a.rankIdx) || (b.playSeconds - a.playSeconds));
+      document.getElementById('hall-of-fame-body').innerHTML = list.slice(0, 6).map((item, i) => `
+        <tr class="text-slate-200">
+          <td class="py-2 px-3 font-mono-num text-amber-400 font-bold">${i + 1}</td>
+          <td class="py-2 px-3 font-bold">${escapeHtml(item.name)}</td>
+          <td class="py-2 px-3 text-emerald-300 font-bold">${item.rankName}</td>
+          <td class="py-2 px-3 text-right font-mono-num text-slate-400">${Math.floor(item.playSeconds / 60)}분</td>
+        </tr>
+      `).join('');
+    }
+
+    function broadcastMultiplayerState() {
+      if (!activeRoomCode) return;
+      const ranks = state.track === 'army' ? ARMY_RANKS : CORP_RANKS;
+      const payload = {
+        roomCode: activeRoomCode,
+        uid: userProfile.uid,
+        name: userProfile.name,
+        track: state.track,
+        rankIdx: state.rankIdx,
+        rankName: ranks[state.rankIdx].name,
+        x: playerPos.x,
+        z: playerPos.z,
+        updatedAt: Date.now()
+      };
+      syncChannel.postMessage({ type: 'PLAYER_POS', payload });
+      if (isFirebaseLive && firebaseDb) {
+        firebaseDb.ref(`kp3d_rooms/${activeRoomCode}/players/${userProfile.uid}`).set(payload);
+      }
+    }
+
+    syncChannel.onmessage = (ev) => {
+      if (ev.data?.type === 'PLAYER_POS' && activeRoomCode && ev.data.payload.roomCode === activeRoomCode) {
+        const p = ev.data.payload;
+        if (p.uid !== userProfile.uid) {
+          state.remotePlayers[p.uid] = p;
+        }
+      }
+    };
+
+    /*************************************************************************
+     * 4. 1인칭 3D 대한민국 월드 (Three.js 렌더링 및 물리 이동)
+     *************************************************************************/
+    let scene, camera, renderer;
+    let playerPos = { x: 0, y: 1.75, z: 14 };
+    let yaw = 0, pitch = 0;
+    const keys = { w: false, a: false, s: false, d: false };
+    const mobileKeys = { w: false, a: false, s: false, d: false };
+    let aiMeshes = [];
+    let built3DMeshes = {};
+    let currentNearZone = 'plaza';
+
+    const WORLD_ZONES = [
+      { id: 'army_base', name: '🪖 육군 종합훈련장 · 지휘본부', desc: '훈련 및 작전 근무를 수행해 육군 공적과 진급 점수를 획득합니다.', x: -24, z: -12, radius: 11, color: 0x10b981 },
+      { id: 'corp_tower', name: '🏢 대한민국 경제타워 (대기업 본사)', desc: '프로젝트 결재 및 경영 실적을 올려 초고속 승진 공적을 쌓습니다.', x: 24, z: -12, radius: 11, color: 0x3b82f6 },
+      { id: 'election_hall', name: '🗳 중앙선거관리본부 · 여의도 의사당', desc: '회장 달성 이후 국회의원·의장·시장·총리·대통령 선거에 출마합니다.', x: 24, z: 14, radius: 11, color: 0x8b5cf6 },
+      { id: 'blue_house', name: '🏛 대한민국 청와대 · 대통령 집무실', desc: '대통령 취임 후 국고 예산 집행 및 대한민국 3D 랜드마크를 건설합니다.', x: 0, z: -26, radius: 12, color: 0xf59e0b }
+    ];
+
+    function init3DScene() {
+      const container = document.getElementById('three-container');
+      container.innerHTML = '';
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0b1324);
+      scene.fog = new THREE.FogExp2(0x0b1324, 0.011);
+
+      camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.1, 300);
+      camera.position.set(playerPos.x, playerPos.y, playerPos.z);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // 조명
+      const hemi = new THREE.HemisphereLight(0xdbeafe, 0x1e293b, 1.15);
+      scene.add(hemi);
+      const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.1);
+      dirLight.position.set(35, 60, 25);
+      scene.add(dirLight);
+
+      // 대한민국 중앙 광장 바닥
+      const groundGeo = new THREE.PlaneGeometry(160, 160);
+      const groundMat = new THREE.MeshStandardMaterial({ color: 0x162033, roughness: 0.85 });
+      const ground = new THREE.Mesh(groundGeo, groundMat);
+      ground.rotation.x = -Math.PI / 2;
+      scene.add(ground);
+
+      // 그리드 도로선
+      const grid = new THREE.GridHelper(160, 32, 0x334155, 0x1e293b);
+      grid.position.y = 0.02;
+      scene.add(grid);
+
+      // 중앙 태극 광장 엠블럼 바닥
+      const plazaRed = new THREE.Mesh(
+        new THREE.CylinderGeometry(7, 7, 0.08, 32, 1, false, 0, Math.PI),
+        new THREE.MeshStandardMaterial({ color: 0xcd2e3a })
+      );
+      plazaRed.position.set(0, 0.04, 4);
+      scene.add(plazaRed);
+
+      const plazaBlue = new THREE.Mesh(
+        new THREE.CylinderGeometry(7, 7, 0.08, 32, 1, false, Math.PI, Math.PI),
+        new THREE.MeshStandardMaterial({ color: 0x0047a0 })
+      );
+      plazaBlue.position.set(0, 0.04, 4);
+      scene.add(plazaBlue);
+
+      // 4대 핵심 구역 3D 건축물 생성
+      createBuilding(-24, -12, 10, 7, 10, 0x14532d, 0x22c55e);
+      createBuilding(24, -12, 9, 22, 9, 0x1e3a8a, 0x60a5fa);
+      createBuilding(24, 14, 12, 7, 10, 0x312e81, 0xa78bfa);
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(4.5, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshStandardMaterial({ color: 0x10b981, metalness: 0.4, roughness: 0.3 })
+      );
+      dome.position.set(24, 7, 14);
+      scene.add(dome);
+
+      createBuilding(0, -26, 16, 8, 9, 0x1e293b, 0xf59e0b);
+      const roof = new THREE.Mesh(
+        new THREE.ConeGeometry(11, 3.5, 4),
+        new THREE.MeshStandardMaterial({ color: 0x0284c7 })
+      );
+      roof.position.set(0, 9.7, -26);
+      roof.rotation.y = Math.PI / 4;
+      scene.add(roof);
+
+      // 구역 바닥 링 표시
+      WORLD_ZONES.forEach(z => {
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(z.radius - 0.5, z.radius, 36),
+          new THREE.MeshBasicMaterial({ color: z.color, side: THREE.DoubleSide })
+        );
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(z.x, 0.06, z.z);
+        scene.add(ring);
+      });
+
+      // AI 시민 40명 3D 캐릭터 스폰
+      aiMeshes = state.aiCitizens.map(ai => {
+        const group = new THREE.Group();
+        const bodyColor = ai.track === 'army' ? 0x15803d : 0x2563eb;
+        const body = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.42, 0.42, 1.35, 12),
+          new THREE.MeshStandardMaterial({ color: bodyColor })
+        );
+        body.position.y = 0.7;
+        const head = new THREE.Mesh(
+          new THREE.SphereGeometry(0.32, 12, 12),
+          new THREE.MeshStandardMaterial({ color: 0xfde68a })
+        );
+        head.position.y = 1.62;
+        group.add(body, head);
+        group.position.set(ai.x, 0, ai.z);
+        scene.add(group);
+        return { data: ai, mesh: group };
+      });
+
+      // 이미 건설된 대통령 타이쿤 건물 복원
+      built3DMeshes = {};
+      (state.nation.builtIds || []).forEach(id => spawnTycoonLandmark3D(id));
+
+      window.addEventListener('resize', onWindowResize);
+      animate3D();
+    }
+
+    function createBuilding(x, z, w, h, d, wallColor, trimColor) {
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
+        new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.5 })
+      );
+      mesh.position.set(x, h / 2, z);
+      scene.add(mesh);
+
+      const trim = new THREE.Mesh(
+        new THREE.BoxGeometry(w + 0.3, 0.5, d + 0.3),
+        new THREE.MeshStandardMaterial({ color: trimColor, emissive: trimColor, emissiveIntensity: 0.25 })
+      );
+      trim.position.set(x, h, z);
+      scene.add(trim);
+    }
+
+    function spawnTycoonLandmark3D(id) {
+      if (!scene || built3DMeshes[id]) return;
+      const b = TYCOON_BUILDINGS.find(x => x.id === id);
+      if (!b) return;
+      const [x, , z] = b.pos;
+      const tower = new THREE.Mesh(
+        new THREE.CylinderGeometry(2.5, 4, 18, 16),
+        new THREE.MeshStandardMaterial({ color: b.color, emissive: b.color, emissiveIntensity: 0.22 })
+      );
+      tower.position.set(x, 9, z);
+      scene.add(tower);
+      built3DMeshes[id] = tower;
+    }
+
+    function onWindowResize() {
+      if (!camera || !renderer) return;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function requestPointerLockSafe() {
+      const el = renderer?.domElement;
+      if (el && el.requestPointerLock) {
+        el.requestPointerLock();
+      }
+    }
+
+    document.addEventListener('mousemove', (e) => {
+      if (document.pointerLockElement === renderer?.domElement) {
+        yaw -= e.movementX * 0.0024;
+        pitch -= e.movementY * 0.0022;
+        pitch = Math.max(-Math.PI / 2.4, Math.min(Math.PI / 2.4, pitch));
+      }
+    });
+
+    let isDraggingLook = false;
+    document.addEventListener('mousedown', (e) => {
+      if (e.target === renderer?.domElement) isDraggingLook = true;
+    });
+    document.addEventListener('mouseup', () => { isDraggingLook = false; });
+    document.addEventListener('mousemove', (e) => {
+      if (isDraggingLook && document.pointerLockElement !== renderer?.domElement) {
+        yaw -= e.movementX * 0.004;
+        pitch -= e.movementY * 0.003;
+        pitch = Math.max(-Math.PI / 2.4, Math.min(Math.PI / 2.4, pitch));
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.key === 'ArrowUp') keys.w = true;
+      if (k === 's' || e.key === 'ArrowDown') keys.s = true;
+      if (k === 'a' || e.key === 'ArrowLeft') keys.a = true;
+      if (k === 'd' || e.key === 'ArrowRight') keys.d = true;
+      if (k === 'e' && !document.getElementById('screen-game').classList.contains('hidden')) {
+        triggerZoneAction();
+      }
+      if (e.key === 'Tab' && !document.getElementById('screen-game').classList.contains('hidden')) {
+        e.preventDefault();
+        toggleOrgModal();
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.key === 'ArrowUp') keys.w = false;
+      if (k === 's' || e.key === 'ArrowDown') keys.s = false;
+      if (k === 'a' || e.key === 'ArrowLeft') keys.a = false;
+      if (k === 'd' || e.key === 'ArrowRight') keys.d = false;
+    });
+
+    function animate3D() {
+      if (document.getElementById('screen-game').classList.contains('hidden')) return;
+      requestAnimationFrame(animate3D);
+
+      const speed = 0.24;
+      const forwardX = -Math.sin(yaw);
+      const forwardZ = -Math.cos(yaw);
+      const rightX = Math.cos(yaw);
+      const rightZ = -Math.sin(yaw);
+
+      const moveF = (keys.w || mobileKeys.w ? 1 : 0) - (keys.s || mobileKeys.s ? 1 : 0);
+      const moveR = (keys.d || mobileKeys.d ? 1 : 0) - (keys.a || mobileKeys.a ? 1 : 0);
+
+      playerPos.x += (forwardX * moveF + rightX * moveR) * speed;
+      playerPos.z += (forwardZ * moveF + rightZ * moveR) * speed;
+      playerPos.x = Math.max(-72, Math.min(72, playerPos.x));
+      playerPos.z = Math.max(-72, Math.min(72, playerPos.z));
+
+      camera.position.set(playerPos.x, playerPos.y, playerPos.z);
+      camera.rotation.order = 'YXZ';
+      camera.rotation.y = yaw;
+      camera.rotation.x = pitch;
+
+      aiMeshes.forEach(item => {
+        item.data.x += Math.cos(item.data.dir) * 0.04;
+        item.data.z += Math.sin(item.data.dir) * 0.04;
+        if (Math.abs(item.data.x) > 65 || Math.abs(item.data.z) > 65 || Math.random() < 0.01) {
+          item.data.dir += (Math.random() - 0.5) * 1.8;
+        }
+        item.mesh.position.set(item.data.x, 0, item.data.z);
+      });
+
+      let foundZone = null;
+      for (const z of WORLD_ZONES) {
+        const dist = Math.hypot(playerPos.x - z.x, playerPos.z - z.z);
+        if (dist <= z.radius) {
+          foundZone = z;
+          break;
+        }
+      }
+      const nextZoneId = foundZone ? foundZone.id : 'plaza';
+      if (nextZoneId !== currentNearZone) {
+        currentNearZone = nextZoneId;
+        updateZoneBanner(foundZone);
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    function updateZoneBanner(zone) {
+      const titleEl = document.getElementById('zone-title');
+      const descEl = document.getElementById('zone-desc');
+      const btnEl = document.getElementById('btn-zone-action');
+
+      if (!zone) {
+        titleEl.textContent = '📍 대한민국 중앙 태극 광장';
+        descEl.textContent = 'WASD로 이동해 훈련장·경제타워·국회선거본부·청와대로 걸어가세요.';
+        btnEl.textContent = '현장 근무 수행 (E)';
+        return;
+      }
+      titleEl.textContent = zone.name;
+      descEl.textContent = zone.desc;
+      if (zone.id === 'election_hall') btnEl.textContent = '🗳 선거 캠프·유세 열기 (E)';
+      else if (zone.id === 'blue_house') btnEl.textContent = '🏛 청와대 집무실 입장 (E)';
+      else if (zone.id === 'army_base') btnEl.textContent = '🪖 군사 훈련·작전 근무 (E)';
+      else btnEl.textContent = '💼 기업 프로젝트 결재 (E)';
+    }
+
+    /*************************************************************************
+     * 5. 진급·승진, 상급자 T/O 경쟁, 선거, 대통령 타이쿤 핵심 로직
+     *************************************************************************/
+    function enter3DWorld() {
+      document.getElementById('screen-lobby').classList.add('hidden');
+      document.getElementById('screen-game').classList.remove('hidden');
+      EpicBgmEngine.setMood(state.track);
+      init3DScene();
+      updateGameHUD();
+      addLiveFeed(`🇰🇷 [${userProfile.name}]님이 대한민국에 접속했습니다.`);
+
+      if (gameLoopTimer) clearInterval(gameLoopTimer);
+      gameLoopTimer = setInterval(onGameSecondTick, 1000);
+    }
+
+    function exitToLobby() {
+      saveProgress();
+      if (gameLoopTimer) clearInterval(gameLoopTimer);
+      if (document.pointerLockElement) document.exitPointerLock();
+      EpicBgmEngine.setMood('lobby');
+      document.getElementById('screen-game').classList.add('hidden');
+      document.getElementById('screen-lobby').classList.remove('hidden');
+      renderHallOfFame();
+    }
+
+    function onGameSecondTick() {
+      state.playSeconds += 1;
+      const ranks = state.track === 'army' ? ARMY_RANKS : CORP_RANKS;
+      const curRank = ranks[state.rankIdx];
+
+      const baseRate = state.track === 'army' ? 2.2 : 2.8;
+      state.xp += baseRate;
+
+      if (state.playSeconds % 15 === 0) {
+        state.money += curRank.salary;
+        simulateAICareerShift();
+        saveProgress();
+      }
+
+      if (curRank.name === '대통령' && state.playSeconds % 10 === 0) {
+        const taxIncome = Math.round(1200 + state.nation.economy * 450);
+        state.nation.budget += taxIncome;
+      }
+
+      updateGameHUD();
+    }
+
+    function simulateAICareerShift() {
+      if (!state.aiCitizens.length) return;
+      const pick = state.aiCitizens[Math.floor(Math.random() * state.aiCitizens.length)];
+      const rList = pick.track === 'army' ? ARMY_RANKS : CORP_RANKS;
+
+      if (Math.random() < 0.65 && pick.rankIdx < rList.length - 3) {
+        pick.rankIdx += 1;
+        addLiveFeed(`[인사발령] AI ${pick.name}님이 ${rList[pick.rankIdx].name}(으)로 진급했습니다.`);
+      } else if (pick.rankIdx > 2) {
+        const oldTitle = rList[pick.rankIdx].name;
+        pick.rankIdx = Math.max(0, pick.rankIdx - 2);
+        addLiveFeed(`[T/O 공석] ${oldTitle} 자리의 AI ${pick.name}님이 퇴임해 정원이 비었습니다!`);
+      }
+    }
+
+    function getUpperTOStatus() {
+      const ranks = state.track === 'army' ? ARMY_RANKS : CORP_RANKS;
+      if (state.rankIdx >= ranks.length - 1) return { occupied: 1, max: 1, hasVacancy: false };
+      const nextRankIdx = state.rankIdx + 1;
+      const maxSlots = ranks[nextRankIdx].toMax;
+
+      const aiCount = state.aiCitizens.filter(a => a.track === state.track && a.rankIdx === nextRankIdx).length;
+      const friendCount = Object.values(state.remotePlayers || {}).filter(
+        p => p.track === state.track && p.rankIdx === nextRankIdx
+      ).length;
+
+      const occupied = aiCount + friendCount;
+      return {
+        occupied,
+        max: maxSlots,
+        hasVacancy: occupied < maxSlots
+      };
+    }
+
+    function triggerZoneAction() {
+      EpicBgmEngine.start(state.track);
+      const ranks = state.track === 'army' ? ARMY_RANKS : CORP_RANKS;
+      const curRank = ranks[state.rankIdx];
+
+      if (currentNearZone === 'blue_house') {
+        if (curRank.name !== '대통령') {
+          alert('청와대 집무실은 [대통령] 직위에 오른 플레이어만 이용할 수 있습니다!');
+          return;
+        }
+        openPresidentModal();
+        return;
+      }
+
+      if (currentNearZone === 'election_hall') {
+        if (state.track === 'corp' && curRank.election) {
+          openElectionModal();
+        } else {
+          state.xp += 18;
+          state.electionSupport = Math.min(95, state.electionSupport + 2);
+          addLiveFeed(`[여의도 정계 활동] 의정·정책 연구로 공적 +18, 지지율 +2% 상승!`);
+          updateGameHUD();
+        }
+        return;
+      }
+
+      const bonus = (state.track === 'army' && currentNearZone === 'army_base') ||
+                    (state.track === 'corp' && currentNearZone === 'corp_tower') ? 32 : 20;
+      state.xp += bonus;
+      state.money += 15;
+      addLiveFeed(`[실적 달성] 현장 근무 완료! 공적 +${bonus}, 수당 +15만원`);
+      updateGameHUD();
+    }
+
+    function attemptPromotion() {
+      const ranks = state.track === 'army' ? ARMY_RANKS : CORP_RANKS;
+      if (state.rankIdx >= ranks.length - 1) return;
+
+      const cur = ranks[state.rankIdx];
+      const next = ranks[state.rankIdx + 1];
+      const toInfo = getUpperTOStatus();
+
+      if (state.xp < cur.reqXp || state.playSeconds < cur.minSec) {
+        alert(`진급 요건이 아직 부족합니다.\n필요 공적: ${cur.reqXp} / 필요 누적시간: ${formatTime(cur.minSec)}`);
+        return;
+      }
+
+      if (state.track === 'corp' && next.election) {
+        openElectionModal();
+        return;
+      }
+
+      if (!toInfo.hasVacancy) {
+        const winChance = 0.45;
+        if (Math.random() > winChance) {
+          state.xp = Math.floor(cur.reqXp * 0.85);
+          addLiveFeed(`⚠️ [T/O 경쟁 탈락] 상위 ${next.name} 정원(${toInfo.occupied}/${toInfo.max})이 가득 차 인사심사에서 보류되었습니다.`);
+          updateGameHUD();
+          return;
+        }
+        const rival = state.aiCitizens.find(a => a.track === state.track && a.rankIdx === state.rankIdx + 1);
+        if (rival) rival.rankIdx = Math.max(0, rival.rankIdx - 1);
+      }
+
+      promoteToNextRank();
+    }
+
+    function promoteToNextRank() {
+      const ranks = state.track === 'army' ? ARMY_RANKS : CORP_RANKS;
+      state.rankIdx += 1;
+      const newRank = ranks[state.rankIdx];
+      addLiveFeed(`🎉 [경축 진급] ${userProfile.name}님이 대한민국 [${newRank.name}](으)로 취임했습니다!`);
+      saveProgress();
+      updateGameHUD();
+
+      if (newRank.name === '대통령') {
+        EpicBgmEngine.setMood('president');
+        alert('🇰🇷 축하합니다! 대한민국 대통령에 취임하셨습니다!\n이제 청와대 집무실과 [대통령 국정 운영 타이쿤]을 통해 대한민국을 직접 꾸릴 수 있습니다.');
+        openPresidentModal();
+      }
+    }
+
+    /*************************************************************************
+     * 6. 선거 유세 모달 (기업 → 정계 트랙)
+     *************************************************************************/
+    function openElectionModal() {
+      const ranks = CORP_RANKS;
+      const next = ranks[state.rankIdx + 1];
+      if (!next) return;
+      document.getElementById('election-title').textContent = `🗳 대한민국 [${next.name}] 선출 본선거`;
+      document.getElementById('election-desc').textContent =
+        `AI 유권자 40명과 접속 플레이어들의 표심을 확보해 과반(50.1%) 이상 득표하면 [${next.name}]에 당선됩니다.`;
+      updateElectionUI();
+      document.getElementById('election-modal').classList.remove('hidden');
+    }
+    function closeElectionModal() { document.getElementById('election-modal').classList.add('hidden'); }
+
+    function updateElectionUI() {
+      document.getElementById('election-support-pct').textContent = `${state.electionSupport.toFixed(1)}%`;
+      document.getElementById('election-support-bar').style.width = `${Math.min(100, state.electionSupport)}%`;
+    }
+
+    function boostElectionSupport(pct, cost) {
+      if (state.money < cost) return alert(`선거 자금이 부족합니다! (필요: ${cost.toLocaleString()}만원)`);
+      state.money -= cost;
+      state.electionSupport = Math.min(92, state.electionSupport + pct);
+      updateElectionUI();
+      updateGameHUD();
+    }
+
+    function castElectionVote() {
+      const swing = (Math.random() - 0.42) * 14;
+      const finalVote = Math.max(5, Math.min(98, state.electionSupport + swing));
+      closeElectionModal();
+
+      if (finalVote >= 50.1) {
+        state.electionSupport = 36;
+        addLiveFeed(`🗳 [선거 당선!] 최종 득표율 ${finalVote.toFixed(1)}%로 당선을 확정지었습니다!`);
+        promoteToNextRank();
+      } else {
+        state.xp = Math.floor(state.xp * 0.85);
+        addLiveFeed(`🗳 [낙선] 최종 득표율 ${finalVote.toFixed(1)}%로 과반에 미달했습니다. 유세 후 재도전하세요!`);
+        updateGameHUD();
+      }
+    }
+
+    /*************************************************************************
+     * 7. 대통령 국정 운영 & 3D 나라 꾸미기 타이쿤
+     *************************************************************************/
+    function openPresidentModal() {
+      EpicBgmEngine.setMood('president');
+      renderPresidentTycoon();
+      document.getElementById('president-modal').classList.remove('hidden');
+    }
+    function closePresidentModal() { document.getElementById('president-modal').classList.add('hidden'); }
+
+    function renderPresidentTycoon() {
+      document.getElementById('nat-budget').textContent = `${state.nation.budget.toLocaleString()}억`;
+      document.getElementById('nat-happy').textContent = `${Math.min(100, state.nation.happy)}%`;
+      document.getElementById('nat-defense').textContent = `${state.nation.defense}`;
+      document.getElementById('nat-economy').textContent = `+${state.nation.economy.toFixed(1)}%`;
+
+      const grid = document.getElementById('tycoon-buildings-grid');
+      grid.innerHTML = TYCOON_BUILDINGS.map(b => {
+        const isBuilt = (state.nation.builtIds || []).includes(b.id);
+        return `
+          <div class="rounded-2xl bg-slate-950/90 border ${isBuilt ? 'border-emerald-500/50' : 'border-white/10'} p-4 flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-white">${b.name}</span>
+                <span class="text-[11px] font-mono-num text-amber-300">${b.cost.toLocaleString()}억</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">
+                행복 +${b.happy}% · 경제 +${b.econ}% · 국방 +${b.def}
+              </p>
+            </div>
+            <button onclick="buildTycoonLandmark('${b.id}')" ${isBuilt ? 'disabled' : ''}
+              class="w-full py-2 rounded-xl text-xs font-black ${isBuilt ? 'bg-emerald-500/20 text-emerald-300' : 'btn-gold'}">
+              ${isBuilt ? '✅ 3D 대한민국에 완공됨' : '🏗 국책 건설 착공'}
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function buildTycoonLandmark(id) {
+      const b = TYCOON_BUILDINGS.find(x => x.id === id);
+      if (!b || state.nation.builtIds.includes(id)) return;
+      if (state.nation.budget < b.cost) return alert('국고 예산이 부족합니다!');
+
+      state.nation.budget -= b.cost;
+      state.nation.happy = Math.min(100, state.nation.happy + b.happy);
+      state.nation.economy = +(state.nation.economy + b.econ).toFixed(1);
+      state.nation.defense += b.def;
+      state.nation.builtIds.push(id);
+
+      spawnTycoonLandmark3D(id);
+      addLiveFeed(`🏛 [대통령 국책사업] '${b.name}'이(가) 3D 대한민국 필드에 완공되었습니다!`);
+      saveProgress();
+      renderPresidentTycoon();
+    }
+
+    function enactPolicy(type) {
+      if (type === 'tax_cut') {
+        if (state.nation.budget < 8000) return alert('국고가 부족합니다.');
+        state.nation.budget -= 8000;
+        state.nation.happy = Math.min(100, state.nation.happy + 10);
+        state.nation.economy = +(state.nation.economy + 0.6).toFixed(1);
+        addLiveFeed('📜 [대통령령] 전 국민 민생 감세 정책이 공포되었습니다.');
+      } else if (type === 'defense_up') {
+        if (state.nation.budget < 10000) return alert('국고가 부족합니다.');
+        state.nation.budget -= 10000;
+        state.nation.defense += 15;
+        addLiveFeed('📜 [대통령령] 첨단 국방 전력 증강 명령이 집행되었습니다.');
+      } else if (type === 'tech_boom') {
+        if (state.nation.budget < 12000) return alert('국고가 부족합니다.');
+        state.nation.budget -= 12000;
+        state.nation.economy = +(state.nation.economy + 1.5).toFixed(1);
+        addLiveFeed('📜 [대통령령] K-반도체·AI 초격차 국가 투자가 시작되었습니다.');
+      }
+      saveProgress();
+      renderPresidentTycoon();
+    }
+
+    /*************************************************************************
+     * 8. HUD 및 조직도 UI 업데이트
+     *************************************************************************/
+    function updateGameHUD() {
+      const ranks = state.track === 'army' ? ARMY_RANKS : CORP_RANKS;
+      const cur = ranks[state.rankIdx];
+      const next = ranks[state.rankIdx + 1];
+
+      const trackBadge = document.getElementById('hud-track-badge');
+      trackBadge.textContent = state.track === 'army' ? '대한민국 육군' : '기업·정계';
+      trackBadge.className = state.track === 'army'
+        ? 'text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-black'
+        : 'text-[11px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-black';
+
+      document.getElementById('hud-rank-title').textContent = cur.name;
+      document.getElementById('hud-player-name').textContent = userProfile.name;
+      document.getElementById('hud-room-tag').textContent = activeRoomCode ? `ROOM ${activeRoomCode}` : 'SOLO · AI 40';
+      document.getElementById('hud-playtime').textContent = formatTime(state.playSeconds);
+      document.getElementById('hud-money').textContent = `${state.money.toLocaleString()}만원`;
+
+      const presBtn = document.getElementById('btn-president-tycoon');
+      if (cur.name === '대통령') {
+        presBtn.classList.remove('hidden');
+      } else {
+        presBtn.classList.add('hidden');
+      }
+
+      const promoteBtn = document.getElementById('btn-promote-now');
+      if (!next) {
+        document.getElementById('hud-next-rank').textContent = '최고 통수권자 (대통령)';
+        document.getElementById('hud-xp-text').textContent = 'MAX';
+        document.getElementById('hud-xp-bar').style.width = '100%';
+        document.getElementById('hud-to-status').textContent = '국가 통치 중';
+        promoteBtn.classList.add('hidden');
+        return;
+      }
+
+      document.getElementById('hud-next-rank').textContent = `${next.name} (필요 ${formatTime(cur.minSec)})`;
+      document.getElementById('hud-xp-text').textContent = `${Math.floor(state.xp)} / ${cur.reqXp} 공적`;
+      const pct = Math.min(100, (state.xp / cur.reqXp) * 100);
+      document.getElementById('hud-xp-bar').style.width = `${pct}%`;
+
+      const toInfo = getUpperTOStatus();
+      const toEl = document.getElementById('hud-to-status');
+      toEl.textContent = toInfo.hasVacancy
+        ? `공석 있음 (${toInfo.occupied}/${toInfo.max})`
+        : `정원 만석 (${toInfo.occupied}/${toInfo.max})`;
+      toEl.className = toInfo.hasVacancy
+        ? 'font-mono-num font-bold text-emerald-400'
+        : 'font-mono-num font-bold text-rose-400';
+
+      const ready = state.xp >= cur.reqXp && state.playSeconds >= cur.minSec;
+      if (ready) {
+        promoteBtn.classList.remove('hidden');
+        promoteBtn.textContent = (state.track === 'corp' && next.election)
+          ? `🗳 ${next.name} 선거 출마!`
+          : `⭐ ${next.name} 진급 신청!`;
+      } else {
+        promoteBtn.classList.add('hidden');
+      }
+    }
+
+    function toggleOrgModal() {
+      const modal = document.getElementById('org-modal');
+      if (!modal.classList.contains('hidden')) {
+        modal.classList.add('hidden');
+        return;
+      }
+      const myRanks = state.track === 'army' ? ARMY_RANKS : CORP_RANKS;
+      const allMembers = [
+        { name: userProfile.name + ' (나)', track: state.track, rankIdx: state.rankIdx, rankName: myRanks[state.rankIdx].name, isUser: true },
+        ...Object.values(state.remotePlayers || {}).map(p => ({
+          name: p.name + ' (친구)', track: p.track, rankIdx: p.rankIdx, rankName: p.rankName, isUser: true
+        })),
+        ...state.aiCitizens.map(a => {
+          const r = a.track === 'army' ? ARMY_RANKS : CORP_RANKS;
+          return { name: a.name, track: a.track, rankIdx: a.rankIdx, rankName: r[a.rankIdx].name, isUser: false };
+        })
+      ].sort((a, b) => b.rankIdx - a.rankIdx);
+
+      document.getElementById('org-list-container').innerHTML = allMembers.map(m => `
+        <div class="p-2.5 rounded-xl ${m.isUser ? 'bg-amber-500/20 border border-amber-400/50 text-amber-200 font-bold' : 'bg-slate-950/80 border border-white/5 text-slate-300'} flex items-center justify-between">
+          <div>
+            <span>${escapeHtml(m.name)}</span>
+            <span class="text-[10px] ml-1.5 px-1.5 py-0.5 rounded ${m.track === 'army' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-blue-500/20 text-blue-300'}">
+              ${m.track === 'army' ? '육군' : '기업·정계'}
+            </span>
+          </div>
+          <span class="font-bold text-white">${m.rankName}</span>
+        </div>
+      `).join('');
+
+      modal.classList.remove('hidden');
+    }
+
+    function addLiveFeed(msg) {
+      const box = document.getElementById('live-feed-box');
+      if (!box) return;
+      const div = document.createElement('div');
+      div.className = 'border-b border-white/5 pb-1 leading-snug';
+      div.textContent = msg;
+      box.prepend(div);
+      while (box.children.length > 25) box.removeChild(box.lastChild);
+    }
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}분 ${String(s).padStart(2, '0')}초`;
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initFirebase();
+      updateLobbyUserUI();
+      renderHallOfFame();
+    });
+  </script>
+</body>
+</html>
