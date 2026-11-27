@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>대한민국 진급·승진 시뮬레이터 | K-PROMOTION 3D</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -15,13 +15,14 @@
       --kr-red: #cd2e3a;
       --gold: #f5b942;
     }
-    * { box-sizing: border-box; user-select: none; }
+    * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
     body {
       margin: 0;
       background-color: var(--bg-dark);
       color: #f8fafc;
       font-family: 'Noto Sans KR', sans-serif;
       overflow-x: hidden;
+      touch-action: manipulation;
     }
     .font-mono-num { font-family: 'JetBrains Mono', monospace; }
     .glass-panel {
@@ -60,10 +61,18 @@
     #crosshair::before, #crosshair::after {
       content: '';
       position: absolute;
-      background: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.85);
     }
     #crosshair::before { top: 6px; left: 0; width: 14px; height: 2px; }
     #crosshair::after { left: 6px; top: 0; width: 2px; height: 14px; }
+
+    /* 패드 / 모바일 화면 회전 드래그 패드 */
+    #touch-look-pad {
+      touch-action: none;
+    }
+    .pad-btn {
+      touch-action: none;
+    }
 
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
@@ -76,11 +85,9 @@
   <!-- 1. 처음 화면 (대한민국 메인 로비)                                      -->
   <!-- ===================================================================== -->
   <div id="screen-lobby" class="min-h-screen taegeuk-gradient flex flex-col justify-between">
-    <!-- 상단 바 -->
     <header class="border-b border-white/10 bg-slate-950/70 backdrop-blur-md px-4 py-3">
       <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3">
-          <!-- 태극 심볼 SVG -->
           <svg width="36" height="36" viewBox="0 0 100 100" class="rounded-full shadow-lg bg-white p-0.5">
             <circle cx="50" cy="50" r="48" fill="#ffffff"/>
             <path d="M50,2 A48,48 0 0,1 50,98 A24,24 0 0,1 50,50 A24,24 0 0,0 50,2 Z" fill="#cd2e3a"/>
@@ -96,7 +103,6 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <!-- 웅장한 BGM 컨트롤 -->
           <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-amber-400/35 text-xs">
             <button id="btn-bgm-toggle" onclick="toggleBgmMute()" class="font-bold text-amber-300 hover:text-amber-200 flex items-center gap-1">
               <span id="bgm-icon">🔊</span>
@@ -119,11 +125,8 @@
       </div>
     </header>
 
-    <!-- 중앙 메인 콘텐츠 -->
     <main class="max-w-7xl w-full mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-      <!-- 왼쪽 7컬럼: 대한민국 비주얼 & 시작 설정 -->
       <div class="lg:col-span-7 glass-panel rounded-3xl p-6 sm:p-8 flex flex-col justify-between space-y-6 relative overflow-hidden">
-        <!-- 배경 한반도 실루엣 데코 -->
         <svg viewBox="0 0 220 320" class="absolute right-4 bottom-4 w-56 h-72 opacity-15 pointer-events-none text-blue-300" fill="currentColor">
           <path d="M125,18 L148,26 L165,45 L154,72 L138,92 L144,122 L158,155 L162,195 L150,235 L132,262 L105,274 L84,264 L78,236 L88,205 L82,175 L64,152 L55,126 L72,102 L68,78 L88,56 L104,32 Z M72,292 Q86,287 98,294 Q85,303 72,292 Z"/>
         </svg>
@@ -138,11 +141,10 @@
           </h1>
           <p class="text-sm text-slate-300 leading-relaxed max-w-2xl">
             실제 복무·근무 시간과 상급자(AI 시민 40명 + 접속 친구)의 T/O(정원) 경쟁을 뚫고 진급하세요.
-            최고 지위에 오르면 직접 대한민국의 시설을 건설하고 세율·국방·복지를 조율하는 <strong>대통령 국정 타이쿤</strong>이 열립니다.
+            최고 지위에 오르면 직접 대한민국의 시설을 건설하고 국정을 조율하는 <strong>대통령 국정 타이쿤</strong>이 열립니다.
           </p>
         </div>
 
-        <!-- 로그인 & 닉네임 영역 -->
         <div class="rounded-2xl bg-slate-950/80 border border-white/10 p-4 space-y-3 relative z-10">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold text-slate-300">시민 등록 및 계정 로그인</span>
@@ -160,7 +162,6 @@
           </div>
         </div>
 
-        <!-- 혼자하기 / 함께하기 버튼 -->
         <div class="space-y-3 relative z-10">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button onclick="openTrackModal('solo')" class="btn-gold py-4 px-5 rounded-2xl text-sm shadow-xl flex items-center justify-center gap-2">
@@ -181,9 +182,7 @@
         </div>
       </div>
 
-      <!-- 오른쪽 5컬럼: 두 진로 비교 & 명예의 전당 -->
       <div class="lg:col-span-5 flex flex-col gap-5">
-        <!-- 진로 구조 안내 카드 -->
         <div class="glass-panel rounded-3xl p-6 space-y-4">
           <h2 class="text-base font-black text-white">진급 · 승진 커리어 트랙 비교</h2>
 
@@ -205,16 +204,15 @@
             </div>
             <p class="text-xs text-slate-300 leading-relaxed">
               <strong>사원 → 대리 → 과장 → 차장 → 부장 → 상무·전무·부사장 → 사장 → 회장</strong> 달성 후,<br/>
-              <strong>국회의원 → 국회의장 → 서울시장 → 국무총리 → 대통령</strong>까지 <strong>실시간 선거 투표(AI 유권자+친구)</strong>로 돌파합니다!
+              <strong>국회의원 → 국회의장 → 서울시장 → 국무총리 → 대통령</strong>까지 <strong>실시간 선거 투표</strong>로 돌파합니다!
             </p>
           </div>
 
           <div class="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-400/25 rounded-xl px-3.5 py-2.5">
-            ⏱ 두 진로 모두 대통령 취임까지 <strong>최소 1시간 이상의 누적 플레이(실제 경과 시간 반영)</strong>가 필요하며, 브라우저를 닫았다가 다시 접속해도 진행도와 근무 시간이 이어집니다.
+            ⏱ 두 진로 모두 대통령 취임까지 <strong>최소 1시간 이상의 누적 플레이</strong>가 필요하며, 저장된 기록은 이어서 플레이할 수 있습니다.
           </div>
         </div>
 
-        <!-- 대통령 취임 명예의 전당 -->
         <div class="glass-panel rounded-3xl p-6 flex-1 flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between mb-3">
@@ -240,12 +238,12 @@
     </main>
 
     <footer class="text-center py-3 text-[11px] text-slate-500 border-t border-white/5">
-      WASD 이동 · 마우스 시점 회전 · E 상호작용(업무/훈련/선거/국정) · Tab 전체 조직도 &amp; 랭킹
+      WASD 이동 · 마우스/패드 시점 회전 · E 상호작용 · Tab 조직도
     </footer>
   </div>
 
   <!-- ===================================================================== -->
-  <!-- 2. 진로 선택 모달 (육군 vs 기업)                                       -->
+  <!-- 2. 진로 선택 모달                                                     -->
   <!-- ===================================================================== -->
   <div id="track-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
     <div class="max-w-3xl w-full glass-panel rounded-3xl p-6 sm:p-8 space-y-6 border border-amber-400/30">
@@ -268,7 +266,6 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- 육군 선택 -->
         <div class="rounded-2xl bg-slate-950/90 border border-emerald-500/40 p-5 flex flex-col justify-between space-y-4">
           <div class="space-y-2">
             <div class="text-3xl">🪖</div>
@@ -287,7 +284,6 @@
           </button>
         </div>
 
-        <!-- 기업 선택 -->
         <div class="rounded-2xl bg-slate-950/90 border border-blue-500/40 p-5 flex flex-col justify-between space-y-4">
           <div class="space-y-2">
             <div class="text-3xl">🏢</div>
@@ -313,37 +309,31 @@
   <!-- 3. 1인칭 3D 게임 플레이 화면 & 오버레이 HUD                           -->
   <!-- ===================================================================== -->
   <div id="screen-game" class="hidden fixed inset-0 w-screen h-screen overflow-hidden">
-    <!-- Three.js 3D 캔버스 컨테이너 -->
     <div id="three-container" class="absolute inset-0 w-full h-full"></div>
-
-    <!-- 조준점 -->
     <div id="crosshair"></div>
 
-    <!-- 상단 HUD: 계급, 진행률, 시간, 상급자 T/O -->
-    <div class="fixed top-3 left-3 right-3 z-30 flex flex-wrap items-start justify-between gap-3 pointer-events-none">
-      <!-- 왼쪽 프로필 & 진급 게이지 -->
-      <div class="glass-panel rounded-2xl p-3.5 sm:p-4 pointer-events-auto max-w-md w-full space-y-2.5 shadow-2xl">
+    <!-- 상단 HUD -->
+    <div class="fixed top-3 left-3 right-3 z-30 flex flex-wrap items-start justify-between gap-2 pointer-events-none">
+      <div class="glass-panel rounded-2xl p-3 sm:p-4 pointer-events-auto max-w-md w-full space-y-2 shadow-2xl">
         <div class="flex items-center justify-between gap-2">
-          <div class="flex items-center gap-2.5">
+          <div class="flex items-center gap-2">
             <span id="hud-track-badge" class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-black">육군</span>
-            <span id="hud-rank-title" class="text-lg font-black text-amber-300">이병</span>
+            <span id="hud-rank-title" class="text-base sm:text-lg font-black text-amber-300">이병</span>
             <span id="hud-player-name" class="text-xs text-slate-300 font-bold">플레이어</span>
           </div>
           <span id="hud-room-tag" class="text-[11px] font-mono-num px-2 py-0.5 rounded bg-slate-900 text-slate-400">SOLO</span>
         </div>
 
-        <!-- 진급/승진 경험치 바 -->
         <div>
           <div class="flex justify-between text-[11px] mb-1">
             <span class="text-slate-300">다음 직위: <strong id="hud-next-rank" class="text-white">일병</strong></span>
             <span id="hud-xp-text" class="font-mono-num text-amber-300">0 / 100 공적</span>
           </div>
-          <div class="w-full h-2.5 rounded-full bg-slate-950 overflow-hidden border border-white/10">
+          <div class="w-full h-2 rounded-full bg-slate-950 overflow-hidden border border-white/10">
             <div id="hud-xp-bar" class="h-full bg-gradient-to-r from-blue-500 via-amber-400 to-amber-300 transition-all duration-300" style="width: 0%"></div>
           </div>
         </div>
 
-        <!-- 핵심 조건 3가지 -->
         <div class="grid grid-cols-3 gap-2 text-[11px] bg-slate-950/75 rounded-xl p-2 border border-white/5">
           <div>
             <div class="text-slate-400 text-[10px]">누적 근무시간</div>
@@ -351,7 +341,7 @@
           </div>
           <div>
             <div class="text-slate-400 text-[10px]">상급자 정원(T/O)</div>
-            <div id="hud-to-status" class="font-mono-num font-bold text-emerald-400">여유 (3/12)</div>
+            <div id="hud-to-status" class="font-mono-num font-bold text-emerald-400">여유</div>
           </div>
           <div>
             <div class="text-slate-400 text-[10px]">보유 자금/예산</div>
@@ -360,99 +350,110 @@
         </div>
       </div>
 
-      <!-- 오른쪽 컨트롤 & 시점 잠금 안내 -->
       <div class="flex flex-col items-end gap-2 pointer-events-auto">
-        <div class="glass-panel rounded-2xl px-3.5 py-2.5 flex flex-wrap items-center gap-2 text-xs">
+        <div class="glass-panel rounded-2xl px-3 py-2 flex flex-wrap items-center gap-1.5 text-xs">
           <button onclick="toggleBgmMute()" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-black">
             <span id="game-bgm-icon">🔊</span> <span id="game-bgm-text">BGM</span>
           </button>
-          <button id="btn-lock-pointer" onclick="requestPointerLockSafe()" class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-black">
-            🎯 1인칭 마우스 시점 켜기
+          <button id="btn-lock-pointer" onclick="requestPointerLockSafe()" class="hidden sm:inline-flex px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-black">
+            🎯 마우스 시점 잠금
           </button>
-          <button onclick="toggleOrgModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold">
-            📊 조직도·AI현황 (Tab)
+          <button onclick="toggleOrgModal()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold">
+            📊 조직도
           </button>
-          <button onclick="exitToLobby()" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-rose-950 text-slate-300 hover:text-rose-200 font-bold">
-            로비로
+          <button onclick="exitToLobby()" class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-rose-950 text-slate-300 hover:text-rose-200 font-bold">
+            로비
           </button>
         </div>
 
-        <!-- 대통령 전용 국정 타이쿤 빠른 버튼 (대통령 달성 시 활성화) -->
         <button id="btn-president-tycoon" onclick="openPresidentModal()" class="hidden btn-gold px-4 py-2.5 rounded-2xl text-xs shadow-xl animate-pulse">
-          🏛 대통령 집무실 · 대한민국 국정 운영 타이쿤 열기
+          🏛 대통령 국정 타이쿤 열기
         </button>
       </div>
     </div>
 
-    <!-- 중앙 하단: 가까운 구역 상호작용 안내 & 수동 액션 버튼 -->
-    <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 w-full max-w-xl px-4 pointer-events-auto">
-      <div class="glass-panel rounded-2xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 border border-amber-400/30 shadow-2xl">
+    <!-- 패드 / 터치 기기용 이동 패드 (왼쪽 하단) -->
+    <div class="fixed bottom-24 left-3 z-30 flex flex-col gap-1.5">
+      <div class="grid grid-cols-3 gap-1 w-32 h-32 bg-slate-950/65 backdrop-blur-md p-1.5 rounded-2xl border border-white/15">
+        <div></div>
+        <button id="pad-w" class="pad-btn bg-slate-800/95 active:bg-amber-400 active:text-slate-950 rounded-xl text-white font-black text-sm flex items-center justify-center">▲</button>
+        <div></div>
+        <button id="pad-a" class="pad-btn bg-slate-800/95 active:bg-amber-400 active:text-slate-950 rounded-xl text-white font-black text-sm flex items-center justify-center">◀</button>
+        <div class="bg-slate-900/70 rounded-xl flex items-center justify-center text-[10px] text-slate-400 font-bold">이동</div>
+        <button id="pad-d" class="pad-btn bg-slate-800/95 active:bg-amber-400 active:text-slate-950 rounded-xl text-white font-black text-sm flex items-center justify-center">▶</button>
+        <div></div>
+        <button id="pad-s" class="pad-btn bg-slate-800/95 active:bg-amber-400 active:text-slate-950 rounded-xl text-white font-black text-sm flex items-center justify-center">▼</button>
+        <div></div>
+      </div>
+    </div>
+
+    <!-- 패드 / 터치 기기용 화면 회전 패드 (오른쪽 하단) -->
+    <div id="touch-look-pad"
+      class="fixed bottom-24 right-3 z-30 w-36 h-32 rounded-2xl bg-slate-950/65 backdrop-blur-md border border-amber-400/35 flex flex-col items-center justify-center text-center p-2 shadow-xl">
+      <div class="text-amber-300 text-lg leading-none mb-1">↻</div>
+      <div class="text-[11px] font-black text-white">화면 돌리기 패드</div>
+      <div class="text-[10px] text-slate-400 mt-0.5 leading-tight">여기를 손가락/펜으로<br/>좌우상하 드래그</div>
+    </div>
+
+    <!-- 중앙 하단: 구역 상호작용 바 -->
+    <div class="fixed bottom-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-xl px-3 pointer-events-auto">
+      <div class="glass-panel rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-between gap-2.5 border border-amber-400/30 shadow-2xl">
         <div>
-          <div id="zone-title" class="text-xs font-black text-amber-300">📍 대한민국 중앙 광장 (대한민국 본부)</div>
-          <div id="zone-desc" class="text-[11px] text-slate-300 mt-0.5">WASD로 이동해 훈련장·업무타워·국회선거본부·청와대로 걸어가세요.</div>
+          <div id="zone-title" class="text-xs font-black text-amber-300">📍 대한민국 중앙 태극 광장</div>
+          <div id="zone-desc" class="text-[11px] text-slate-300 mt-0.5">이동 패드(WASD)로 건물 구역으로 걸어가세요.</div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <button id="btn-zone-action" onclick="triggerZoneAction()" class="btn-primary px-4 py-2.5 rounded-xl text-xs font-black text-white">
-            업무 / 훈련 수행 (E)
+            업무 / 훈련 (E)
           </button>
           <button id="btn-promote-now" onclick="attemptPromotion()" class="hidden btn-gold px-4 py-2.5 rounded-xl text-xs">
-            ⭐ 진급·선거 도전!
+            ⭐ 진급·선거!
           </button>
         </div>
       </div>
     </div>
 
-    <!-- 좌측 하단: 실시간 진급·승진 및 AI 동향 피드 -->
-    <div class="hidden md:block fixed bottom-4 left-4 z-20 w-80 glass-panel rounded-2xl p-3 pointer-events-none">
-      <div class="text-[11px] font-black text-slate-300 mb-1.5">📡 대한민국 인사·정치 실시간 속보</div>
-      <div id="live-feed-box" class="h-28 overflow-y-auto space-y-1 text-[11px] text-slate-300 font-mono-num"></div>
-    </div>
-
-    <!-- 모바일 터치 조이스틱 (터치 기기 대응) -->
-    <div class="md:hidden fixed bottom-24 left-4 z-30 grid grid-cols-3 gap-1 w-28 h-28 opacity-80">
-      <div></div>
-      <button ontouchstart="mobileKeys.w=true" ontouchend="mobileKeys.w=false" class="bg-slate-800/90 rounded-lg text-white font-bold">▲</button>
-      <div></div>
-      <button ontouchstart="mobileKeys.a=true" ontouchend="mobileKeys.a=false" class="bg-slate-800/90 rounded-lg text-white font-bold">◀</button>
-      <button ontouchstart="mobileKeys.s=true" ontouchend="mobileKeys.s=false" class="bg-slate-800/90 rounded-lg text-white font-bold">▼</button>
-      <button ontouchstart="mobileKeys.d=true" ontouchend="mobileKeys.d=false" class="bg-slate-800/90 rounded-lg text-white font-bold">▶</button>
+    <!-- 데스크톱 좌측 상단 아래 실시간 속보 -->
+    <div class="hidden xl:block fixed top-44 left-3 z-20 w-72 glass-panel rounded-2xl p-3 pointer-events-none">
+      <div class="text-[11px] font-black text-slate-300 mb-1.5">📡 대한민국 인사·정치 속보</div>
+      <div id="live-feed-box" class="h-24 overflow-y-auto space-y-1 text-[11px] text-slate-300 font-mono-num"></div>
     </div>
   </div>
 
   <!-- ===================================================================== -->
-  <!-- 4. 조직도 & AI 인구 40명 현황 모달 (Tab)                               -->
+  <!-- 4. 조직도 & AI 인구 40명 현황 모달                                   -->
   <!-- ===================================================================== -->
   <div id="org-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
     <div class="max-w-4xl w-full glass-panel rounded-3xl p-6 space-y-4 max-h-[88vh] flex flex-col">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <div>
           <h3 class="text-lg font-black text-white">🇰🇷 대한민국 실시간 계급·직위 분포도 (유저 + AI 시민 40명)</h3>
-          <p class="text-xs text-slate-400">상급자 T/O(정원)가 꽉 차 있으면 상급자가 은퇴하거나 밀려날 때까지 대기하거나 경쟁해야 합니다.</p>
+          <p class="text-xs text-slate-400">상급자 T/O(정원)가 꽉 차 있으면 상급자가 퇴임하거나 경쟁에서 이겨야 진급합니다.</p>
         </div>
-        <button onclick="toggleOrgModal()" class="px-3 py-1 rounded-lg bg-slate-800 text-xs font-bold text-white">닫기 (Tab)</button>
+        <button onclick="toggleOrgModal()" class="px-3 py-1 rounded-lg bg-slate-800 text-xs font-bold text-white">닫기</button>
       </div>
       <div id="org-list-container" class="overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pr-1 text-xs"></div>
     </div>
   </div>
 
   <!-- ===================================================================== -->
-  <!-- 5. 선거 유세 미니 모달 (기업→정계 트랙 전용)                           -->
+  <!-- 5. 선거 유세 모달                                                     -->
   <!-- ===================================================================== -->
   <div id="election-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
     <div class="max-w-lg w-full glass-panel rounded-3xl p-6 space-y-5 border border-blue-400/40">
       <div>
         <span class="text-xs font-bold text-blue-400">REPUBLIC OF KOREA ELECTION</span>
         <h3 id="election-title" class="text-xl font-black text-white mt-1">대한민국 공직 선거 투표</h3>
-        <p id="election-desc" class="text-xs text-slate-300 mt-1">AI 유권자 40명과 접속 중인 플레이어들의 지지율을 합산해 당락을 결정합니다.</p>
+        <p id="election-desc" class="text-xs text-slate-300 mt-1">AI 유권자 40명과 접속 플레이어들의 지지율을 합산해 당락을 결정합니다.</p>
       </div>
 
       <div class="rounded-2xl bg-slate-950/90 border border-white/10 p-4 space-y-3">
         <div class="flex justify-between text-xs">
           <span class="text-slate-400">현재 예상 지지율</span>
-          <span id="election-support-pct" class="font-mono-num font-black text-amber-300">42.0%</span>
+          <span id="election-support-pct" class="font-mono-num font-black text-amber-300">35.0%</span>
         </div>
         <div class="w-full h-3 rounded-full bg-slate-900 overflow-hidden">
-          <div id="election-support-bar" class="h-full bg-gradient-to-r from-blue-500 to-amber-400" style="width: 42%"></div>
+          <div id="election-support-bar" class="h-full bg-gradient-to-r from-blue-500 to-amber-400" style="width: 35%"></div>
         </div>
         <div class="flex flex-wrap gap-2 pt-2">
           <button onclick="boostElectionSupport(8, 500)" class="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white">
@@ -485,7 +486,6 @@
         <button onclick="closePresidentModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 text-xs font-bold text-white">집무실 나가기</button>
       </div>
 
-      <!-- 국가 지표 4종 -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div class="rounded-2xl bg-slate-950/90 border border-white/10 p-3.5">
           <div class="text-[11px] text-slate-400">국고 예산</div>
@@ -505,13 +505,11 @@
         </div>
       </div>
 
-      <!-- 3D 대한민국 랜드마크 건설 타이쿤 -->
       <div class="space-y-3">
         <h3 class="text-sm font-black text-amber-300">🏗 대한민국 3D 국책 랜드마크 건설 (3D 월드에 즉시 반영)</h3>
         <div id="tycoon-buildings-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
       </div>
 
-      <!-- 대통령 국정 정책 결재 -->
       <div class="space-y-3">
         <h3 class="text-sm font-black text-blue-300">📜 대통령 긴급 명령 및 정책 집행</h3>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -521,11 +519,11 @@
           </button>
           <button onclick="enactPolicy('defense_up')" class="p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-900 border border-white/10 text-left space-y-1">
             <div class="font-black text-blue-300">🛡 첨단 국방 전력 증강</div>
-            <div class="text-slate-400">국고 -10,000억 · 국방력 +15 · AI 군사기 증가</div>
+            <div class="text-slate-400">국고 -10,000억 · 국방력 +15</div>
           </button>
           <button onclick="enactPolicy('tech_boom')" class="p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-900 border border-white/10 text-left space-y-1">
             <div class="font-black text-amber-300">🚀 K-반도체·AI 초격차 투자</div>
-            <div class="text-slate-400">국고 -12,000억 · 매 10초 국고 세수 +3,500억 증가</div>
+            <div class="text-slate-400">국고 -12,000억 · 경제 +1.5%</div>
           </button>
         </div>
       </div>
@@ -554,7 +552,6 @@
     </div>
   </div>
 
-  <!-- Firebase Compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -571,17 +568,15 @@
       let volume = 0.45;
       let stepTimer = null;
       let stepIndex = 0;
-      let currentMood = 'lobby'; // 'lobby' | 'army' | 'corp' | 'president'
+      let currentMood = 'lobby';
 
-      // 웅장한 단조/장조 장엄 진행 (D minor -> Bb major -> G minor -> A major)
       const CHORD_PROGRESSION = [
-        { root: 73.42, notes: [146.83, 174.61, 220.00, 293.66] }, // Dm
-        { root: 58.27, notes: [116.54, 146.83, 174.61, 233.08] }, // Bb
-        { root: 98.00, notes: [196.00, 233.08, 293.66, 392.00] }, // Gm
-        { root: 110.00, notes: [110.00, 164.81, 220.00, 277.18] } // A7 / 장엄 클라이맥스
+        { root: 73.42, notes: [146.83, 174.61, 220.00, 293.66] },
+        { root: 58.27, notes: [116.54, 146.83, 174.61, 233.08] },
+        { root: 98.00, notes: [196.00, 233.08, 293.66, 392.00] },
+        { root: 110.00, notes: [110.00, 164.81, 220.00, 277.18] }
       ];
 
-      // 웅장한 브라스·현악 멜로디 라인 (주파수 Hz, 0이면 휴지)
       const HEROIC_MELODY = [
         293.66, 0, 349.23, 440.00, 587.33, 0, 523.25, 440.00,
         466.16, 0, 349.23, 392.00, 440.00, 0, 349.23, 293.66,
@@ -597,12 +592,9 @@
           masterGain.gain.value = isMuted ? 0 : volume;
           masterGain.connect(ctx.destination);
         }
-        if (ctx.state === 'suspended') {
-          ctx.resume();
-        }
+        if (ctx.state === 'suspended') ctx.resume();
       }
 
-      // 웅장한 브라스/오케스트라 패드 노트 재생
       function playBrassNote(freq, duration, peakGain = 0.08, type = 'sawtooth') {
         if (!ctx || !masterGain || freq <= 0 || isMuted) return;
         const now = ctx.currentTime;
@@ -613,9 +605,8 @@
 
         osc.type = type;
         osc.frequency.setValueAtTime(freq, now);
-
         osc2.type = 'triangle';
-        osc2.frequency.setValueAtTime(freq * 1.003, now); // 코러스 두께감
+        osc2.frequency.setValueAtTime(freq * 1.003, now);
 
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(1600, now);
@@ -636,7 +627,6 @@
         osc2.stop(now + duration + 0.02);
       }
 
-      // 웅장한 팀파니 / 군북 타격음
       function playTimpani(freq, gainAmt = 0.24) {
         if (!ctx || !masterGain || isMuted) return;
         const now = ctx.currentTime;
@@ -663,20 +653,17 @@
         const chord = CHORD_PROGRESSION[chordIdx];
         const beatInBar = stepIndex % 8;
 
-        // 매 마디 첫 박과 5박에 웅장한 저음 코드 패드 & 팀파니
         if (beatInBar === 0 || beatInBar === 4) {
           const padGain = currentMood === 'president' ? 0.065 : 0.05;
           chord.notes.forEach(n => playBrassNote(n * 0.5, 1.45, padGain, 'triangle'));
           playTimpani(chord.root, beatInBar === 0 ? 0.26 : 0.16);
         }
 
-        // 웅장한 리드 브라스 멜로디
         const melNote = HEROIC_MELODY[stepIndex % HEROIC_MELODY.length];
         if (melNote > 0) {
           const octaveBoost = currentMood === 'president' ? 1.15 : 1.0;
           playBrassNote(melNote, 0.36, 0.065 * octaveBoost, 'sawtooth');
         }
-
         stepIndex++;
       }
 
@@ -685,7 +672,7 @@
         ensureContext();
         if (isPlaying) return;
         isPlaying = true;
-        stepTimer = setInterval(tickStep, 300); // 장엄한 행진 템포
+        stepTimer = setInterval(tickStep, 300);
         syncBgmUI();
       }
 
@@ -697,9 +684,7 @@
       function toggleMute() {
         ensureContext();
         isMuted = !isMuted;
-        if (masterGain) {
-          masterGain.gain.setTargetAtTime(isMuted ? 0 : volume, ctx.currentTime, 0.05);
-        }
+        if (masterGain) masterGain.gain.setTargetAtTime(isMuted ? 0 : volume, ctx.currentTime, 0.05);
         if (!isMuted && !isPlaying) start(currentMood);
         syncBgmUI();
       }
@@ -711,9 +696,7 @@
           ensureContext();
           if (!isPlaying) start(currentMood);
         }
-        if (masterGain && ctx) {
-          masterGain.gain.setTargetAtTime(isMuted ? 0 : volume, ctx.currentTime, 0.05);
-        }
+        if (masterGain && ctx) masterGain.gain.setTargetAtTime(isMuted ? 0 : volume, ctx.currentTime, 0.05);
         syncBgmUI();
       }
 
@@ -734,20 +717,14 @@
       return { start, setMood, toggleMute, setVolume };
     })();
 
-    function toggleBgmMute() {
-      EpicBgmEngine.toggleMute();
-    }
-    function setBgmVolume(val) {
-      EpicBgmEngine.setVolume(val);
-    }
+    function toggleBgmMute() { EpicBgmEngine.toggleMute(); }
+    function setBgmVolume(val) { EpicBgmEngine.setVolume(val); }
 
-    // 첫 사용자 클릭/키 입력 시 웅장한 BGM 자동 시작
     window.addEventListener('pointerdown', () => EpicBgmEngine.start('lobby'), { once: true });
     window.addEventListener('keydown', () => EpicBgmEngine.start('lobby'), { once: true });
 
     /*************************************************************************
-     * 1. 계급 및 직위 체계 정의 (육군 20단계 vs 기업+선거 15단계)
-     * - 대통령 도달까지 최소 1시간(3,600초) 이상 소요되도록 시간·공적 임계값 설계
+     * 1. 계급 및 직위 체계 정의
      *************************************************************************/
     const ARMY_RANKS = [
       { name: '이병', reqXp: 100, minSec: 90, toMax: 15, salary: 80 },
@@ -799,12 +776,12 @@
     ];
 
     const TYCOON_BUILDINGS = [
-      { id: 'namsan_tower', name: 'N서울타워 & 전망대', cost: 8000, happy: 8, econ: 0.4, def: 0, pos: [-26, 0, -28], color: 0xf59e0b },
-      { id: 'k_defense_hq', name: '합동첨단국방사령부', cost: 12000, happy: 2, econ: 0.2, def: 18, pos: [28, 0, -26], color: 0x10b981 },
-      { id: 'semicon_cluster', name: '용인·평택 반도체 메가클러스터', cost: 15000, happy: 5, econ: 1.2, def: 4, pos: [-28, 0, 26], color: 0x3b82f6 },
-      { id: 'ktx_hub', name: '전국 초고속 GTX·KTX 허브', cost: 10000, happy: 10, econ: 0.7, def: 3, pos: [28, 0, 26], color: 0xa855f7 },
-      { id: 'space_center', name: '나로우주센터 제2발사대', cost: 18000, happy: 9, econ: 0.9, def: 12, pos: [0, 0, -40], color: 0xef4444 },
-      { id: 'han_river_park', name: '한강 친환경 수변 문화도시', cost: 7000, happy: 14, econ: 0.3, def: 0, pos: [0, 0, 38], color: 0x06b6d4 }
+      { id: 'namsan_tower', name: 'N서울타워 & 전망대', cost: 8000, happy: 8, econ: 0.4, def: 0, pos: [-34, 0, -34], color: 0xf59e0b },
+      { id: 'k_defense_hq', name: '합동첨단국방사령부', cost: 12000, happy: 2, econ: 0.2, def: 18, pos: [34, 0, -34], color: 0x10b981 },
+      { id: 'semicon_cluster', name: '용인·평택 반도체 클러스터', cost: 15000, happy: 5, econ: 1.2, def: 4, pos: [-34, 0, 32], color: 0x3b82f6 },
+      { id: 'ktx_hub', name: '초고속 GTX·KTX 허브', cost: 10000, happy: 10, econ: 0.7, def: 3, pos: [34, 0, 32], color: 0xa855f7 },
+      { id: 'space_center', name: '나로우주센터 발사대', cost: 18000, happy: 9, econ: 0.9, def: 12, pos: [0, 0, -48], color: 0xef4444 },
+      { id: 'han_river_park', name: '한강 수변 문화도시', cost: 7000, happy: 14, econ: 0.3, def: 0, pos: [0, 0, 44], color: 0x06b6d4 }
     ];
 
     /*************************************************************************
@@ -868,21 +845,15 @@
     let gameLoopTimer = null;
 
     let state = {
-      track: 'army', // 'army' | 'corp'
+      track: 'army',
       rankIdx: 0,
       xp: 0,
       playSeconds: 0,
-      money: 150, // 만원 단위
+      money: 150,
       electionSupport: 35,
       aiCitizens: [],
       remotePlayers: {},
-      nation: {
-        budget: 50000, // 억 원
-        happy: 72,
-        defense: 75,
-        economy: 3.4,
-        builtIds: []
-      }
+      nation: { budget: 50000, happy: 72, defense: 75, economy: 3.4, builtIds: [] }
     };
 
     function updateLobbyUserUI() {
@@ -900,7 +871,7 @@
 
     async function loginWithGoogle() {
       if (!isFirebaseLive || !firebaseAuth) {
-        alert('Google 로그인을 사용하려면 우측 상단 [⚙ Firebase 설정]에서 Firebase Config를 먼저 입력해주세요. (이름 입력만으로도 모든 플레이가 가능합니다!)');
+        alert('Google 로그인을 사용하려면 우측 상단 [⚙ Firebase 설정]에서 Firebase Config를 먼저 입력해주세요.');
         return;
       }
       try {
@@ -965,9 +936,10 @@
           name: KOREAN_NAMES[i % KOREAN_NAMES.length],
           track: isArmy ? 'army' : 'corp',
           rankIdx: rIdx,
-          x: (Math.random() - 0.5) * 68,
-          z: (Math.random() - 0.5) * 68,
-          dir: Math.random() * Math.PI * 2
+          x: (Math.random() - 0.5) * 64,
+          z: (Math.random() - 0.5) * 64,
+          dir: Math.random() * Math.PI * 2,
+          walkPhase: Math.random() * Math.PI * 2
         });
       }
       return list;
@@ -1020,16 +992,12 @@
       const list = raw ? JSON.parse(raw) : [];
       const idx = list.findIndex(x => x.uid === entry.uid);
       if (idx >= 0) {
-        if (entry.rankIdx >= list[idx].rankIdx || entry.playSeconds > list[idx].playSeconds) {
-          list[idx] = entry;
-        }
+        if (entry.rankIdx >= list[idx].rankIdx || entry.playSeconds > list[idx].playSeconds) list[idx] = entry;
       } else {
         list.push(entry);
       }
       localStorage.setItem('kp3d_hof', JSON.stringify(list));
-      if (isFirebaseLive && firebaseDb) {
-        firebaseDb.ref('kp3d_hall_of_fame/' + entry.uid).set(entry);
-      }
+      if (isFirebaseLive && firebaseDb) firebaseDb.ref('kp3d_hall_of_fame/' + entry.uid).set(entry);
     }
 
     async function renderHallOfFame() {
@@ -1074,38 +1042,301 @@
         updatedAt: Date.now()
       };
       syncChannel.postMessage({ type: 'PLAYER_POS', payload });
-      if (isFirebaseLive && firebaseDb) {
-        firebaseDb.ref(`kp3d_rooms/${activeRoomCode}/players/${userProfile.uid}`).set(payload);
-      }
+      if (isFirebaseLive && firebaseDb) firebaseDb.ref(`kp3d_rooms/${activeRoomCode}/players/${userProfile.uid}`).set(payload);
     }
 
     syncChannel.onmessage = (ev) => {
       if (ev.data?.type === 'PLAYER_POS' && activeRoomCode && ev.data.payload.roomCode === activeRoomCode) {
         const p = ev.data.payload;
-        if (p.uid !== userProfile.uid) {
-          state.remotePlayers[p.uid] = p;
-        }
+        if (p.uid !== userProfile.uid) state.remotePlayers[p.uid] = p;
       }
     };
 
     /*************************************************************************
-     * 4. 1인칭 3D 대한민국 월드 (Three.js 렌더링 및 물리 이동)
+     * 4. 구체화된 1인칭 3D 대한민국 건축물 & 실제 인체형 AI 시민 월드
      *************************************************************************/
     let scene, camera, renderer;
-    let playerPos = { x: 0, y: 1.75, z: 14 };
+    let playerPos = { x: 0, y: 1.75, z: 16 };
     let yaw = 0, pitch = 0;
     const keys = { w: false, a: false, s: false, d: false };
-    const mobileKeys = { w: false, a: false, s: false, d: false };
-    let aiMeshes = [];
+    const padKeys = { w: false, a: false, s: false, d: false };
+    let aiHumanMeshes = [];
     let built3DMeshes = {};
     let currentNearZone = 'plaza';
 
     const WORLD_ZONES = [
-      { id: 'army_base', name: '🪖 육군 종합훈련장 · 지휘본부', desc: '훈련 및 작전 근무를 수행해 육군 공적과 진급 점수를 획득합니다.', x: -24, z: -12, radius: 11, color: 0x10b981 },
-      { id: 'corp_tower', name: '🏢 대한민국 경제타워 (대기업 본사)', desc: '프로젝트 결재 및 경영 실적을 올려 초고속 승진 공적을 쌓습니다.', x: 24, z: -12, radius: 11, color: 0x3b82f6 },
-      { id: 'election_hall', name: '🗳 중앙선거관리본부 · 여의도 의사당', desc: '회장 달성 이후 국회의원·의장·시장·총리·대통령 선거에 출마합니다.', x: 24, z: 14, radius: 11, color: 0x8b5cf6 },
-      { id: 'blue_house', name: '🏛 대한민국 청와대 · 대통령 집무실', desc: '대통령 취임 후 국고 예산 집행 및 대한민국 3D 랜드마크를 건설합니다.', x: 0, z: -26, radius: 12, color: 0xf59e0b }
+      { id: 'army_base', name: '🪖 육군 종합훈련장 · 지휘본부', desc: '연병장·벙커·국기게양대에서 훈련을 수행해 육군 공적을 쌓습니다.', x: -25, z: -14, radius: 12, color: 0x22c55e },
+      { id: 'corp_tower', name: '🏢 대한민국 경제타워 (대기업 본사)', desc: '유리 커튼월 오피스타워와 로비에서 경영 실적을 올려 승진합니다.', x: 25, z: -14, radius: 12, color: 0x60a5fa },
+      { id: 'election_hall', name: '🗳 대한민국 국회의사당 · 선관위', desc: '24개 원형 열주와 청동 돔이 있는 의사당에서 공직 선거에 출마합니다.', x: 25, z: 16, radius: 12, color: 0xa78bfa },
+      { id: 'blue_house', name: '🏛 청와대 본관 · 대통령 집무실', desc: '청기와 지붕과 전통 열주가 있는 본관에서 국정을 운영하고 도시를 꾸밉니다.', x: 0, z: -30, radius: 13, color: 0xf59e0b }
     ];
+
+    // 디테일 건축물 헬퍼 (기단, 본체, 창문/열주, 지붕, 간판/깃대)
+    function buildDetailedArmyBase(x, z) {
+      const grp = new THREE.Group();
+      grp.position.set(x, 0, z);
+
+      const apron = new THREE.Mesh(
+        new THREE.BoxGeometry(16, 0.25, 16),
+        new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 })
+      );
+      apron.position.y = 0.125;
+      grp.add(apron);
+
+      const bunker = new THREE.Mesh(
+        new THREE.BoxGeometry(11, 5.5, 8),
+        new THREE.MeshStandardMaterial({ color: 0x3f4e3a, roughness: 0.75 })
+      );
+      bunker.position.set(0, 2.75, -1);
+      grp.add(bunker);
+
+      const parapet = new THREE.Mesh(
+        new THREE.BoxGeometry(11.6, 0.7, 8.6),
+        new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 })
+      );
+      parapet.position.set(0, 5.7, -1);
+      grp.add(parapet);
+
+      // 방탄 창문 슬릿
+      for (let i = -3.5; i <= 3.5; i += 2.3) {
+        const win = new THREE.Mesh(
+          new THREE.BoxGeometry(1.1, 0.85, 0.2),
+          new THREE.MeshStandardMaterial({ color: 0x0f172a, emissive: 0x4ade80, emissiveIntensity: 0.35 })
+        );
+        win.position.set(i, 3.6, 3.05);
+        grp.add(win);
+      }
+
+      // 깃대 & 태극기 패널
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.14, 11, 8),
+        new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.7, roughness: 0.25 })
+      );
+      pole.position.set(-6.2, 5.5, 5.5);
+      grp.add(pole);
+
+      const flag = new THREE.Mesh(
+        new THREE.BoxGeometry(2.4, 1.5, 0.08),
+        new THREE.MeshStandardMaterial({ color: 0xf8fafc, emissive: 0x0047a0, emissiveIntensity: 0.18 })
+      );
+      flag.position.set(-4.95, 9.8, 5.5);
+      grp.add(flag);
+
+      scene.add(grp);
+    }
+
+    function buildDetailedCorpTower(x, z) {
+      const grp = new THREE.Group();
+      grp.position.set(x, 0, z);
+
+      // 포디움(저층 로비)
+      const podium = new THREE.Mesh(
+        new THREE.BoxGeometry(12, 4.2, 12),
+        new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.35, roughness: 0.4 })
+      );
+      podium.position.y = 2.1;
+      grp.add(podium);
+
+      // 고층 유리 커튼월 타워
+      const tower = new THREE.Mesh(
+        new THREE.BoxGeometry(8.2, 22, 8.2),
+        new THREE.MeshStandardMaterial({ color: 0x1d4ed8, metalness: 0.72, roughness: 0.2 })
+      );
+      tower.position.y = 15.2;
+      grp.add(tower);
+
+      // 수평 커튼월 띠 & 창문 라인
+      for (let h = 6; h <= 24; h += 3) {
+        const band = new THREE.Mesh(
+          new THREE.BoxGeometry(8.45, 0.32, 8.45),
+          new THREE.MeshStandardMaterial({ color: 0x93c5fd, metalness: 0.8, roughness: 0.2 })
+        );
+        band.position.y = h;
+        grp.add(band);
+      }
+
+      // 옥상 헬리패드/첨탑
+      const spire = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.18, 0.5, 5.5, 12),
+        new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8, roughness: 0.2 })
+      );
+      spire.position.y = 28.8;
+      grp.add(spire);
+
+      scene.add(grp);
+    }
+
+    function buildDetailedAssemblyHall(x, z) {
+      const grp = new THREE.Group();
+      grp.position.set(x, 0, z);
+
+      // 계단식 기단
+      const base1 = new THREE.Mesh(
+        new THREE.BoxGeometry(15, 1.2, 13),
+        new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.7 })
+      );
+      base1.position.y = 0.6;
+      grp.add(base1);
+
+      const hall = new THREE.Mesh(
+        new THREE.BoxGeometry(12.6, 5.2, 10.6),
+        new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.6 })
+      );
+      hall.position.y = 3.8;
+      grp.add(hall);
+
+      // 정면·측면 열주(기둥)
+      const colGeo = new THREE.CylinderGeometry(0.26, 0.28, 5.0, 12);
+      const colMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.45 });
+      for (let cx = -5.2; cx <= 5.2; cx += 2.6) {
+        const cFront = new THREE.Mesh(colGeo, colMat);
+        cFront.position.set(cx, 3.8, 5.5);
+        const cBack = new THREE.Mesh(colGeo, colMat);
+        cBack.position.set(cx, 3.8, -5.5);
+        grp.add(cFront, cBack);
+      }
+
+      // 청동 돔
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(4.2, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshStandardMaterial({ color: 0x0f766e, metalness: 0.55, roughness: 0.3 })
+      );
+      dome.position.y = 6.4;
+      grp.add(dome);
+
+      scene.add(grp);
+    }
+
+    function buildDetailedBlueHouse(x, z) {
+      const grp = new THREE.Group();
+      grp.position.set(x, 0, z);
+
+      // 석조 기단
+      const stylobate = new THREE.Mesh(
+        new THREE.BoxGeometry(18, 1.4, 11),
+        new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.75 })
+      );
+      stylobate.position.y = 0.7;
+      grp.add(stylobate);
+
+      // 백색 본관 벽체
+      const mainWall = new THREE.Mesh(
+        new THREE.BoxGeometry(15.6, 5.4, 8.8),
+        new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.55 })
+      );
+      mainWall.position.y = 4.1;
+      grp.add(mainWall);
+
+      // 2층 청기와 지붕 & 1층 처마 지붕
+      const lowerRoof = new THREE.Mesh(
+        new THREE.ConeGeometry(12.2, 2.2, 4),
+        new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4, metalness: 0.25 })
+      );
+      lowerRoof.position.y = 7.4;
+      lowerRoof.rotation.y = Math.PI / 4;
+      grp.add(lowerRoof);
+
+      const upperRoof = new THREE.Mesh(
+        new THREE.ConeGeometry(7.2, 2.8, 4),
+        new THREE.MeshStandardMaterial({ color: 0x0369a1, roughness: 0.35, metalness: 0.3 })
+      );
+      upperRoof.position.y = 9.5;
+      upperRoof.rotation.y = Math.PI / 4;
+      grp.add(upperRoof);
+
+      // 금빛 문장
+      const emblem = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.1, 1.1, 0.2, 20),
+        new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.2 })
+      );
+      emblem.rotation.x = Math.PI / 2;
+      emblem.position.set(0, 5.2, 4.48);
+      grp.add(emblem);
+
+      scene.add(grp);
+    }
+
+    // 사람 형태 캐릭터 생성 (머리, 모자/헤어, 목, 상체, 양팔 피벗, 양다리 피벗)
+    function createHumanCharacterMesh(isArmy, rankIdx) {
+      const root = new THREE.Group();
+      const isSenior = rankIdx >= 10;
+
+      const jacketColor = isArmy
+        ? (isSenior ? 0x1e3a2f : 0x2d4a28)
+        : (isSenior ? 0x111827 : 0x1e3a8a);
+      const pantsColor = isArmy ? 0x1f2d1d : 0x1e293b;
+      const skinColor = 0xf5cba7;
+
+      const skinMat = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 0.65 });
+      const jacketMat = new THREE.MeshStandardMaterial({ color: jacketColor, roughness: 0.55 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: pantsColor, roughness: 0.7 });
+
+      // 다리 피벗 (왼쪽 / 오른쪽)
+      const leftLegPivot = new THREE.Group();
+      leftLegPivot.position.set(-0.16, 0.78, 0);
+      const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.78, 0.22), pantsMat);
+      leftLeg.position.y = -0.39;
+      const leftShoe = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.1, 0.3), new THREE.MeshStandardMaterial({ color: 0x09090b }));
+      leftShoe.position.set(0, -0.73, 0.04);
+      leftLegPivot.add(leftLeg, leftShoe);
+
+      const rightLegPivot = new THREE.Group();
+      rightLegPivot.position.set(0.16, 0.78, 0);
+      const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.78, 0.22), pantsMat);
+      rightLeg.position.y = -0.39;
+      const rightShoe = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.1, 0.3), new THREE.MeshStandardMaterial({ color: 0x09090b }));
+      rightShoe.position.set(0, -0.73, 0.04);
+      rightLegPivot.add(rightLeg, rightShoe);
+
+      // 몸통
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.72, 0.28), jacketMat);
+      torso.position.y = 1.14;
+
+      // 넥타이 / 계급장 포인트
+      const tie = new THREE.Mesh(
+        new THREE.BoxGeometry(0.09, 0.42, 0.04),
+        new THREE.MeshStandardMaterial({ color: isArmy ? 0xf59e0b : 0xef4444 })
+      );
+      tie.position.set(0, 1.18, 0.15);
+
+      // 팔 피벗 (왼쪽 / 오른쪽)
+      const leftArmPivot = new THREE.Group();
+      leftArmPivot.position.set(-0.35, 1.44, 0);
+      const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.62, 0.18), jacketMat);
+      leftArm.position.y = -0.28;
+      const leftHand = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.15), skinMat);
+      leftHand.position.y = -0.62;
+      leftArmPivot.add(leftArm, leftHand);
+
+      const rightArmPivot = new THREE.Group();
+      rightArmPivot.position.set(0.35, 1.44, 0);
+      const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.62, 0.18), jacketMat);
+      rightArm.position.y = -0.28;
+      const rightHand = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.15), skinMat);
+      rightHand.position.y = -0.62;
+      rightArmPivot.add(rightArm, rightHand);
+
+      // 머리 & 모자/머리스타일
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0, 1.72, 0);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.36, 0.34), skinMat);
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x09090b });
+      const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.03), eyeMat);
+      leftEye.position.set(-0.08, 0.03, 0.175);
+      const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.03), eyeMat);
+      rightEye.position.set(0.08, 0.03, 0.175);
+
+      const hat = new THREE.Mesh(
+        new THREE.BoxGeometry(0.38, 0.13, 0.4),
+        new THREE.MeshStandardMaterial({ color: isArmy ? 0x14532d : 0x1e293b })
+      );
+      hat.position.set(0, 0.21, 0.02);
+
+      headGroup.add(head, leftEye, rightEye, hat);
+      root.add(leftLegPivot, rightLegPivot, torso, tie, leftArmPivot, rightArmPivot, headGroup);
+
+      return { root, leftLegPivot, rightLegPivot, leftArmPivot, rightArmPivot };
+    }
 
     function init3DScene() {
       const container = document.getElementById('three-container');
@@ -1113,7 +1344,7 @@
 
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x0b1324);
-      scene.fog = new THREE.FogExp2(0x0b1324, 0.011);
+      scene.fog = new THREE.FogExp2(0x0b1324, 0.009);
 
       camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.1, 300);
       camera.position.set(playerPos.x, playerPos.y, playerPos.z);
@@ -1123,64 +1354,49 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       container.appendChild(renderer.domElement);
 
-      // 조명
-      const hemi = new THREE.HemisphereLight(0xdbeafe, 0x1e293b, 1.15);
+      const hemi = new THREE.HemisphereLight(0xe0f2fe, 0x1e293b, 1.25);
       scene.add(hemi);
-      const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.1);
-      dirLight.position.set(35, 60, 25);
+      const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.2);
+      dirLight.position.set(40, 65, 30);
       scene.add(dirLight);
 
-      // 대한민국 중앙 광장 바닥
-      const groundGeo = new THREE.PlaneGeometry(160, 160);
-      const groundMat = new THREE.MeshStandardMaterial({ color: 0x162033, roughness: 0.85 });
-      const ground = new THREE.Mesh(groundGeo, groundMat);
+      // 지면 & 가로등·도로
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(170, 170),
+        new THREE.MeshStandardMaterial({ color: 0x162033, roughness: 0.85 })
+      );
       ground.rotation.x = -Math.PI / 2;
       scene.add(ground);
 
-      // 그리드 도로선
-      const grid = new THREE.GridHelper(160, 32, 0x334155, 0x1e293b);
+      const grid = new THREE.GridHelper(170, 34, 0x334155, 0x1e293b);
       grid.position.y = 0.02;
       scene.add(grid);
 
-      // 중앙 태극 광장 엠블럼 바닥
+      // 중앙 광장 태극 문양
       const plazaRed = new THREE.Mesh(
-        new THREE.CylinderGeometry(7, 7, 0.08, 32, 1, false, 0, Math.PI),
+        new THREE.CylinderGeometry(7.5, 7.5, 0.08, 36, 1, false, 0, Math.PI),
         new THREE.MeshStandardMaterial({ color: 0xcd2e3a })
       );
       plazaRed.position.set(0, 0.04, 4);
       scene.add(plazaRed);
 
       const plazaBlue = new THREE.Mesh(
-        new THREE.CylinderGeometry(7, 7, 0.08, 32, 1, false, Math.PI, Math.PI),
+        new THREE.CylinderGeometry(7.5, 7.5, 0.08, 36, 1, false, Math.PI, Math.PI),
         new THREE.MeshStandardMaterial({ color: 0x0047a0 })
       );
       plazaBlue.position.set(0, 0.04, 4);
       scene.add(plazaBlue);
 
-      // 4대 핵심 구역 3D 건축물 생성
-      createBuilding(-24, -12, 10, 7, 10, 0x14532d, 0x22c55e);
-      createBuilding(24, -12, 9, 22, 9, 0x1e3a8a, 0x60a5fa);
-      createBuilding(24, 14, 12, 7, 10, 0x312e81, 0xa78bfa);
-      const dome = new THREE.Mesh(
-        new THREE.SphereGeometry(4.5, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2),
-        new THREE.MeshStandardMaterial({ color: 0x10b981, metalness: 0.4, roughness: 0.3 })
-      );
-      dome.position.set(24, 7, 14);
-      scene.add(dome);
+      // 구체화된 4대 건물 건축
+      buildDetailedArmyBase(-25, -14);
+      buildDetailedCorpTower(25, -14);
+      buildDetailedAssemblyHall(25, 16);
+      buildDetailedBlueHouse(0, -30);
 
-      createBuilding(0, -26, 16, 8, 9, 0x1e293b, 0xf59e0b);
-      const roof = new THREE.Mesh(
-        new THREE.ConeGeometry(11, 3.5, 4),
-        new THREE.MeshStandardMaterial({ color: 0x0284c7 })
-      );
-      roof.position.set(0, 9.7, -26);
-      roof.rotation.y = Math.PI / 4;
-      scene.add(roof);
-
-      // 구역 바닥 링 표시
+      // 구역 바닥 링
       WORLD_ZONES.forEach(z => {
         const ring = new THREE.Mesh(
-          new THREE.RingGeometry(z.radius - 0.5, z.radius, 36),
+          new THREE.RingGeometry(z.radius - 0.5, z.radius, 40),
           new THREE.MeshBasicMaterial({ color: z.color, side: THREE.DoubleSide })
         );
         ring.rotation.x = -Math.PI / 2;
@@ -1188,27 +1404,15 @@
         scene.add(ring);
       });
 
-      // AI 시민 40명 3D 캐릭터 스폰
-      aiMeshes = state.aiCitizens.map(ai => {
-        const group = new THREE.Group();
-        const bodyColor = ai.track === 'army' ? 0x15803d : 0x2563eb;
-        const body = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.42, 0.42, 1.35, 12),
-          new THREE.MeshStandardMaterial({ color: bodyColor })
-        );
-        body.position.y = 0.7;
-        const head = new THREE.Mesh(
-          new THREE.SphereGeometry(0.32, 12, 12),
-          new THREE.MeshStandardMaterial({ color: 0xfde68a })
-        );
-        head.position.y = 1.62;
-        group.add(body, head);
-        group.position.set(ai.x, 0, ai.z);
-        scene.add(group);
-        return { data: ai, mesh: group };
+      // 사람 형태 AI 시민 40명 스폰
+      aiHumanMeshes = state.aiCitizens.map(ai => {
+        const parts = createHumanCharacterMesh(ai.track === 'army', ai.rankIdx);
+        parts.root.position.set(ai.x, 0, ai.z);
+        parts.root.rotation.y = ai.dir;
+        scene.add(parts.root);
+        return { data: ai, parts };
       });
 
-      // 이미 건설된 대통령 타이쿤 건물 복원
       built3DMeshes = {};
       (state.nation.builtIds || []).forEach(id => spawnTycoonLandmark3D(id));
 
@@ -1216,34 +1420,35 @@
       animate3D();
     }
 
-    function createBuilding(x, z, w, h, d, wallColor, trimColor) {
-      const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(w, h, d),
-        new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.5 })
-      );
-      mesh.position.set(x, h / 2, z);
-      scene.add(mesh);
-
-      const trim = new THREE.Mesh(
-        new THREE.BoxGeometry(w + 0.3, 0.5, d + 0.3),
-        new THREE.MeshStandardMaterial({ color: trimColor, emissive: trimColor, emissiveIntensity: 0.25 })
-      );
-      trim.position.set(x, h, z);
-      scene.add(trim);
-    }
-
     function spawnTycoonLandmark3D(id) {
       if (!scene || built3DMeshes[id]) return;
       const b = TYCOON_BUILDINGS.find(x => x.id === id);
       if (!b) return;
       const [x, , z] = b.pos;
-      const tower = new THREE.Mesh(
-        new THREE.CylinderGeometry(2.5, 4, 18, 16),
-        new THREE.MeshStandardMaterial({ color: b.color, emissive: b.color, emissiveIntensity: 0.22 })
+      const grp = new THREE.Group();
+      grp.position.set(x, 0, z);
+
+      const base = new THREE.Mesh(
+        new THREE.BoxGeometry(9, 2.2, 9),
+        new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 })
       );
-      tower.position.set(x, 9, z);
-      scene.add(tower);
-      built3DMeshes[id] = tower;
+      base.position.y = 1.1;
+
+      const tower = new THREE.Mesh(
+        new THREE.CylinderGeometry(2.2, 3.6, 16, 18),
+        new THREE.MeshStandardMaterial({ color: b.color, emissive: b.color, emissiveIntensity: 0.25, metalness: 0.5, roughness: 0.3 })
+      );
+      tower.position.y = 10.2;
+
+      const beacon = new THREE.Mesh(
+        new THREE.SphereGeometry(1.1, 14, 14),
+        new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: b.color, emissiveIntensity: 0.7 })
+      );
+      beacon.position.y = 19.2;
+
+      grp.add(base, tower, beacon);
+      scene.add(grp);
+      built3DMeshes[id] = grp;
     }
 
     function onWindowResize() {
@@ -1255,31 +1460,85 @@
 
     function requestPointerLockSafe() {
       const el = renderer?.domElement;
-      if (el && el.requestPointerLock) {
-        el.requestPointerLock();
-      }
+      if (el && el.requestPointerLock) el.requestPointerLock();
     }
 
+    // 데스크톱 마우스 시점 회전 (포인터 락 + 드래그 둘 다 지원)
+    let isDraggingLook = false;
+    let lastMouseX = 0, lastMouseY = 0;
+
+    document.addEventListener('mousedown', (e) => {
+      if (e.target === renderer?.domElement) {
+        isDraggingLook = true;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+      }
+    });
+    document.addEventListener('mouseup', () => { isDraggingLook = false; });
     document.addEventListener('mousemove', (e) => {
       if (document.pointerLockElement === renderer?.domElement) {
         yaw -= e.movementX * 0.0024;
         pitch -= e.movementY * 0.0022;
         pitch = Math.max(-Math.PI / 2.4, Math.min(Math.PI / 2.4, pitch));
-      }
-    });
-
-    let isDraggingLook = false;
-    document.addEventListener('mousedown', (e) => {
-      if (e.target === renderer?.domElement) isDraggingLook = true;
-    });
-    document.addEventListener('mouseup', () => { isDraggingLook = false; });
-    document.addEventListener('mousemove', (e) => {
-      if (isDraggingLook && document.pointerLockElement !== renderer?.domElement) {
-        yaw -= e.movementX * 0.004;
-        pitch -= e.movementY * 0.003;
+      } else if (isDraggingLook) {
+        const dx = e.clientX - lastMouseX;
+        const dy = e.clientY - lastMouseY;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+        yaw -= dx * 0.005;
+        pitch -= dy * 0.004;
         pitch = Math.max(-Math.PI / 2.4, Math.min(Math.PI / 2.4, pitch));
       }
     });
+
+    // 패드 / 모바일 터치 이동 버튼 바인딩 (pointerdown/up/cancel/leave 모두 처리)
+    function bindPadButton(id, keyName) {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      const setOn = (e) => { e.preventDefault(); EpicBgmEngine.start(state.track); padKeys[keyName] = true; };
+      const setOff = (e) => { e.preventDefault(); padKeys[keyName] = false; };
+      btn.addEventListener('pointerdown', setOn);
+      btn.addEventListener('pointerup', setOff);
+      btn.addEventListener('pointercancel', setOff);
+      btn.addEventListener('pointerleave', setOff);
+    }
+    bindPadButton('pad-w', 'w');
+    bindPadButton('pad-a', 'a');
+    bindPadButton('pad-s', 's');
+    bindPadButton('pad-d', 'd');
+
+    // 패드 / 모바일 화면 회전 패드 (pointerdown -> pointermove -> pointerup)
+    const lookPad = document.getElementById('touch-look-pad');
+    let lookPointerId = null;
+    let lastLookX = 0, lastLookY = 0;
+
+    if (lookPad) {
+      lookPad.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        EpicBgmEngine.start(state.track);
+        lookPointerId = e.pointerId;
+        lastLookX = e.clientX;
+        lastLookY = e.clientY;
+        lookPad.setPointerCapture(e.pointerId);
+      });
+      lookPad.addEventListener('pointermove', (e) => {
+        if (e.pointerId !== lookPointerId) return;
+        const dx = e.clientX - lastLookX;
+        const dy = e.clientY - lastLookY;
+        lastLookX = e.clientX;
+        lastLookY = e.clientY;
+        yaw -= dx * 0.0075;
+        pitch -= dy * 0.006;
+        pitch = Math.max(-Math.PI / 2.4, Math.min(Math.PI / 2.4, pitch));
+      });
+      const endLook = (e) => {
+        if (e.pointerId === lookPointerId) {
+          lookPointerId = null;
+        }
+      };
+      lookPad.addEventListener('pointerup', endLook);
+      lookPad.addEventListener('pointercancel', endLook);
+    }
 
     document.addEventListener('keydown', (e) => {
       const k = e.key.toLowerCase();
@@ -1308,32 +1567,44 @@
       if (document.getElementById('screen-game').classList.contains('hidden')) return;
       requestAnimationFrame(animate3D);
 
-      const speed = 0.24;
+      const speed = 0.25;
       const forwardX = -Math.sin(yaw);
       const forwardZ = -Math.cos(yaw);
       const rightX = Math.cos(yaw);
       const rightZ = -Math.sin(yaw);
 
-      const moveF = (keys.w || mobileKeys.w ? 1 : 0) - (keys.s || mobileKeys.s ? 1 : 0);
-      const moveR = (keys.d || mobileKeys.d ? 1 : 0) - (keys.a || mobileKeys.a ? 1 : 0);
+      const moveF = (keys.w || padKeys.w ? 1 : 0) - (keys.s || padKeys.s ? 1 : 0);
+      const moveR = (keys.d || padKeys.d ? 1 : 0) - (keys.a || padKeys.a ? 1 : 0);
 
       playerPos.x += (forwardX * moveF + rightX * moveR) * speed;
       playerPos.z += (forwardZ * moveF + rightZ * moveR) * speed;
-      playerPos.x = Math.max(-72, Math.min(72, playerPos.x));
-      playerPos.z = Math.max(-72, Math.min(72, playerPos.z));
+      playerPos.x = Math.max(-74, Math.min(74, playerPos.x));
+      playerPos.z = Math.max(-74, Math.min(74, playerPos.z));
 
       camera.position.set(playerPos.x, playerPos.y, playerPos.z);
       camera.rotation.order = 'YXZ';
       camera.rotation.y = yaw;
       camera.rotation.x = pitch;
 
-      aiMeshes.forEach(item => {
-        item.data.x += Math.cos(item.data.dir) * 0.04;
-        item.data.z += Math.sin(item.data.dir) * 0.04;
-        if (Math.abs(item.data.x) > 65 || Math.abs(item.data.z) > 65 || Math.random() < 0.01) {
-          item.data.dir += (Math.random() - 0.5) * 1.8;
+      // 사람형 AI 보행 애니메이션 + 방향 전환
+      aiHumanMeshes.forEach(item => {
+        item.data.x += Math.cos(item.data.dir) * 0.045;
+        item.data.z += Math.sin(item.data.dir) * 0.045;
+        item.data.walkPhase += 0.14;
+
+        if (Math.abs(item.data.x) > 66 || Math.abs(item.data.z) > 66 || Math.random() < 0.01) {
+          item.data.dir += (Math.random() - 0.5) * 1.9;
         }
-        item.mesh.position.set(item.data.x, 0, item.data.z);
+
+        item.parts.root.position.set(item.data.x, 0, item.data.z);
+        // Three.js 모델 정면(+Z)을 이동 방향(cos(dir), sin(dir))에 맞춤
+        item.parts.root.rotation.y = Math.atan2(Math.cos(item.data.dir), Math.sin(item.data.dir));
+
+        const swing = Math.sin(item.data.walkPhase) * 0.55;
+        item.parts.leftLegPivot.rotation.x = swing;
+        item.parts.rightLegPivot.rotation.x = -swing;
+        item.parts.leftArmPivot.rotation.x = -swing * 0.75;
+        item.parts.rightArmPivot.rotation.x = swing * 0.75;
       });
 
       let foundZone = null;
@@ -1360,16 +1631,16 @@
 
       if (!zone) {
         titleEl.textContent = '📍 대한민국 중앙 태극 광장';
-        descEl.textContent = 'WASD로 이동해 훈련장·경제타워·국회선거본부·청와대로 걸어가세요.';
-        btnEl.textContent = '현장 근무 수행 (E)';
+        descEl.textContent = '왼쪽 패드로 이동하고 오른쪽 패드로 화면을 돌려 구역으로 가세요.';
+        btnEl.textContent = '현장 근무 (E)';
         return;
       }
       titleEl.textContent = zone.name;
       descEl.textContent = zone.desc;
-      if (zone.id === 'election_hall') btnEl.textContent = '🗳 선거 캠프·유세 열기 (E)';
-      else if (zone.id === 'blue_house') btnEl.textContent = '🏛 청와대 집무실 입장 (E)';
-      else if (zone.id === 'army_base') btnEl.textContent = '🪖 군사 훈련·작전 근무 (E)';
-      else btnEl.textContent = '💼 기업 프로젝트 결재 (E)';
+      if (zone.id === 'election_hall') btnEl.textContent = '🗳 선거 유세 (E)';
+      else if (zone.id === 'blue_house') btnEl.textContent = '🏛 청와대 집무실 (E)';
+      else if (zone.id === 'army_base') btnEl.textContent = '🪖 군사 훈련 (E)';
+      else btnEl.textContent = '💼 기업 결재 (E)';
     }
 
     /*************************************************************************
@@ -1446,11 +1717,7 @@
       ).length;
 
       const occupied = aiCount + friendCount;
-      return {
-        occupied,
-        max: maxSlots,
-        hasVacancy: occupied < maxSlots
-      };
+      return { occupied, max: maxSlots, hasVacancy: occupied < maxSlots };
     }
 
     function triggerZoneAction() {
@@ -1506,10 +1773,9 @@
       }
 
       if (!toInfo.hasVacancy) {
-        const winChance = 0.45;
-        if (Math.random() > winChance) {
+        if (Math.random() > 0.45) {
           state.xp = Math.floor(cur.reqXp * 0.85);
-          addLiveFeed(`⚠️ [T/O 경쟁 탈락] 상위 ${next.name} 정원(${toInfo.occupied}/${toInfo.max})이 가득 차 인사심사에서 보류되었습니다.`);
+          addLiveFeed(`⚠️ [T/O 경쟁 탈락] 상위 ${next.name} 정원(${toInfo.occupied}/${toInfo.max})이 가득 차 보류되었습니다.`);
           updateGameHUD();
           return;
         }
@@ -1530,17 +1796,16 @@
 
       if (newRank.name === '대통령') {
         EpicBgmEngine.setMood('president');
-        alert('🇰🇷 축하합니다! 대한민국 대통령에 취임하셨습니다!\n이제 청와대 집무실과 [대통령 국정 운영 타이쿤]을 통해 대한민국을 직접 꾸릴 수 있습니다.');
+        alert('🇰🇷 축하합니다! 대한민국 대통령에 취임하셨습니다!\n이제 청와대 집무실과 [대통령 국정 타이쿤]을 통해 대한민국을 직접 꾸릴 수 있습니다.');
         openPresidentModal();
       }
     }
 
     /*************************************************************************
-     * 6. 선거 유세 모달 (기업 → 정계 트랙)
+     * 6. 선거 유세 모달
      *************************************************************************/
     function openElectionModal() {
-      const ranks = CORP_RANKS;
-      const next = ranks[state.rankIdx + 1];
+      const next = CORP_RANKS[state.rankIdx + 1];
       if (!next) return;
       document.getElementById('election-title').textContent = `🗳 대한민국 [${next.name}] 선출 본선거`;
       document.getElementById('election-desc').textContent =
@@ -1595,8 +1860,7 @@
       document.getElementById('nat-defense').textContent = `${state.nation.defense}`;
       document.getElementById('nat-economy').textContent = `+${state.nation.economy.toFixed(1)}%`;
 
-      const grid = document.getElementById('tycoon-buildings-grid');
-      grid.innerHTML = TYCOON_BUILDINGS.map(b => {
+      document.getElementById('tycoon-buildings-grid').innerHTML = TYCOON_BUILDINGS.map(b => {
         const isBuilt = (state.nation.builtIds || []).includes(b.id);
         return `
           <div class="rounded-2xl bg-slate-950/90 border ${isBuilt ? 'border-emerald-500/50' : 'border-white/10'} p-4 flex flex-col justify-between space-y-3">
@@ -1678,11 +1942,8 @@
       document.getElementById('hud-money').textContent = `${state.money.toLocaleString()}만원`;
 
       const presBtn = document.getElementById('btn-president-tycoon');
-      if (cur.name === '대통령') {
-        presBtn.classList.remove('hidden');
-      } else {
-        presBtn.classList.add('hidden');
-      }
+      if (cur.name === '대통령') presBtn.classList.remove('hidden');
+      else presBtn.classList.add('hidden');
 
       const promoteBtn = document.getElementById('btn-promote-now');
       if (!next) {
@@ -1694,26 +1955,19 @@
         return;
       }
 
-      document.getElementById('hud-next-rank').textContent = `${next.name} (필요 ${formatTime(cur.minSec)})`;
+      document.getElementById('hud-next-rank').textContent = `${next.name} (${formatTime(cur.minSec)})`;
       document.getElementById('hud-xp-text').textContent = `${Math.floor(state.xp)} / ${cur.reqXp} 공적`;
-      const pct = Math.min(100, (state.xp / cur.reqXp) * 100);
-      document.getElementById('hud-xp-bar').style.width = `${pct}%`;
+      document.getElementById('hud-xp-bar').style.width = `${Math.min(100, (state.xp / cur.reqXp) * 100)}%`;
 
       const toInfo = getUpperTOStatus();
       const toEl = document.getElementById('hud-to-status');
-      toEl.textContent = toInfo.hasVacancy
-        ? `공석 있음 (${toInfo.occupied}/${toInfo.max})`
-        : `정원 만석 (${toInfo.occupied}/${toInfo.max})`;
-      toEl.className = toInfo.hasVacancy
-        ? 'font-mono-num font-bold text-emerald-400'
-        : 'font-mono-num font-bold text-rose-400';
+      toEl.textContent = toInfo.hasVacancy ? `공석 (${toInfo.occupied}/${toInfo.max})` : `만석 (${toInfo.occupied}/${toInfo.max})`;
+      toEl.className = toInfo.hasVacancy ? 'font-mono-num font-bold text-emerald-400' : 'font-mono-num font-bold text-rose-400';
 
       const ready = state.xp >= cur.reqXp && state.playSeconds >= cur.minSec;
       if (ready) {
         promoteBtn.classList.remove('hidden');
-        promoteBtn.textContent = (state.track === 'corp' && next.election)
-          ? `🗳 ${next.name} 선거 출마!`
-          : `⭐ ${next.name} 진급 신청!`;
+        promoteBtn.textContent = (state.track === 'corp' && next.election) ? `🗳 ${next.name} 선거!` : `⭐ ${next.name} 진급!`;
       } else {
         promoteBtn.classList.add('hidden');
       }
